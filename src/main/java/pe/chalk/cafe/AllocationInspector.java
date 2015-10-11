@@ -85,7 +85,7 @@ public class AllocationInspector {
         Takoyaki.getInstance().getLogger().info(TextFormat.GOLD + "[" + AllocationInspector.KOREAN_DATE_FORMAT.format(date) + " 게시글 할당제 달성 여부]");
 
         Comparator<Map.Entry<Member, List<MemberArticle>>> comparator = Comparator.comparing(entry -> -entry.getValue().size());
-        comparator = comparator.thenComparing(entry -> entry.getValue().size() < this.getAllocatedArticles() ? Integer.MAX_VALUE : entry.getValue().get((int) this.getAllocatedArticles() - 1).getId());
+        comparator = comparator.thenComparing(entry -> entry.getValue().size() <= 0 ? Integer.MAX_VALUE : entry.getValue().get(entry.getValue().size() >= this.getAllocatedArticles() ? (int) this.getAllocatedArticles() - 1 : 0).getId());
         comparator = comparator.thenComparing(entry -> entry.getKey().toString());
 
         this.getAssignees().stream().collect(Collectors.toMap(assignee -> assignee, assignee -> this.getArticles(assignee, date))).entrySet().stream().sorted(comparator).forEach(entry -> {
