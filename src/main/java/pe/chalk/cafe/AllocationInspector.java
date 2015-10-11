@@ -90,7 +90,7 @@ public class AllocationInspector {
         comparator = comparator.thenComparing(entry -> entry.getValue().size() <= 0 ? Integer.MAX_VALUE : entry.getValue().get(entry.getValue().size() >= this.getAllocatedArticles() ? (int) this.getAllocatedArticles() - 1 : 0).getId());
         comparator = comparator.thenComparing(entry -> entry.getKey().toString());
 
-        final Counter succeededAssigneesCounter = new Counter(), totalArticlesCounter = new Counter();
+        final Counter aliveAssigneesCounter = new Counter(), succeededAssigneesCounter = new Counter(), totalArticlesCounter = new Counter();
 
         Map<Integer, Long> counted = this.getAssignees().stream().collect(Collectors.toMap(assignee -> assignee, assignee -> this.getArticles(assignee, date))).entrySet().stream().sorted(comparator).map(entry -> {
             int count = entry.getValue().size();
@@ -103,29 +103,33 @@ public class AllocationInspector {
                     count, this.getAllocatedArticles(), done ? "SUCCESS" : "FAILURE", TextFormat.RESET, format, last, entry.getKey()));
 
             totalArticlesCounter.add(count);
+            if(count > 0) aliveAssigneesCounter.increase();
             if(done) succeededAssigneesCounter.increase();
 
             return count;
         }).collect(Collectors.groupingBy(num -> num, Collectors.counting()));
 
         int totalAssignees = this.getAssignees().size();
+        long aliveAssignees = aliveAssigneesCounter.getValue();
         long succeededAssignees = succeededAssigneesCounter.getValue();
         long totalArticles = totalArticlesCounter.getValue();
 
         float average = totalArticles * 1f / totalAssignees;
-        float percentage = succeededAssignees * 1f / totalAssignees;
+        float alivePercentage = aliveAssignees * 1f / totalAssignees;
+        float succeededPercentage = succeededAssignees * 1f / totalAssignees;
 
         double stdev = Math.sqrt(counted.entrySet().stream().mapToDouble(entry -> Math.pow(entry.getKey() - average, 2) * entry.getValue()).sum() / totalAssignees);
 
         String delimiter = TextFormat.RESET.toString() + TextFormat.DARK_BLUE + "| " + TextFormat.BLUE;
 
-        Takoyaki.getInstance().getLogger().info(String.format("%s대상자: %s%d명 %s달성자: %s%d명 %s총 게시글: %s%d개 %s평균: %s%.2f개 %s표준편차: %s%.2f개 %s달성률: %s%.2f%% %s소요시간: %s%.2f초 %s%n",
+        Takoyaki.getInstance().getLogger().info(String.format("%s대상자: %s%d명 %s달성자: %s%d명 %s총 게시글: %s%d개 %s평균: %s%.2f개 %s표준편차: %s%.2f개 %s참여율: %s%.2f%% %s달성률: %s%.2f%% %s소요시간: %s%.2f초 %s%n",
                 delimiter, TextFormat.BOLD, totalAssignees,
                 delimiter, TextFormat.BOLD, succeededAssignees,
                 delimiter, TextFormat.BOLD, totalArticles,
                 delimiter, TextFormat.BOLD, average,
                 delimiter, TextFormat.BOLD, stdev,
-                delimiter, TextFormat.BOLD, percentage * 100,
+                delimiter, TextFormat.BOLD, alivePercentage * 100,
+                delimiter, TextFormat.BOLD, succeededPercentage * 100,
                 delimiter, TextFormat.BOLD, (System.currentTimeMillis() - start) / 1000f, delimiter));
     }
 
