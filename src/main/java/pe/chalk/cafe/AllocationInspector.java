@@ -86,7 +86,7 @@ public class AllocationInspector {
     public void inspect(Date date){
         long start = System.currentTimeMillis();
 
-        Takoyaki.getInstance().getLogger().info(TextFormat.BOLD.toString() + TextFormat.BLUE + "[" + AllocationInspector.KOREAN_DATE_FORMAT.format(date) + " 게시글 할당제 달성 여부]");
+        Takoyaki.getInstance().getLogger().info(TextFormat.BOLD.toString() + TextFormat.BLUE + "[" + AllocationInspector.KOREAN_DATE_FORMAT.format(date) + "]");
 
         Comparator<Map.Entry<Member, List<MemberArticle>>> comparator = Comparator.comparing(entry -> -entry.getValue().size());
         comparator = comparator.thenComparing(entry -> entry.getValue().size() <= 0 ? Integer.MAX_VALUE : entry.getValue().get(entry.getValue().size() >= this.getAllocatedArticles() ? (int) this.getAllocatedArticles() - 1 : 0).getId());
