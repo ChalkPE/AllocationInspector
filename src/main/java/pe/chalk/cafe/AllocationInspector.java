@@ -90,9 +90,9 @@ public class AllocationInspector {
         comparator = comparator.thenComparing(entry -> entry.getValue().size() <= 0 ? Integer.MAX_VALUE : entry.getValue().get(entry.getValue().size() >= this.getAllocatedArticles() ? (int) this.getAllocatedArticles() - 1 : 0).getId());
         comparator = comparator.thenComparing(entry -> entry.getKey().toString());
 
-        final Counter succeededAssignees = new Counter(), totalArticles = new Counter();
+        final Counter succeededAssigneesCounter = new Counter(), totalArticlesCounter = new Counter();
 
-        this.getAssignees().stream().collect(Collectors.toMap(assignee -> assignee, assignee -> this.getArticles(assignee, date))).entrySet().stream().sorted(comparator).forEach(entry -> {
+        Map<Integer, Long> counted = this.getAssignees().stream().collect(Collectors.toMap(assignee -> assignee, assignee -> this.getArticles(assignee, date))).entrySet().stream().sorted(comparator).map(entry -> {
             int count = entry.getValue().size();
             boolean done = count >= this.getAllocatedArticles();
 
@@ -102,18 +102,30 @@ public class AllocationInspector {
             Takoyaki.getInstance().getLogger().info(String.format("%s%s%2d/%d %s%s%s %s %s", format, TextFormat.BOLD,
                     count, this.getAllocatedArticles(), done ? "SUCCESS" : "FAILURE", TextFormat.RESET, format, last, entry.getKey()));
 
-            totalArticles.add(count);
-            if(done) succeededAssignees.increase();
-        });
+            totalArticlesCounter.add(count);
+            if(done) succeededAssigneesCounter.increase();
+
+            return count;
+        }).collect(Collectors.groupingBy(num -> num, Collectors.counting()));
+
+        int totalAssignees = this.getAssignees().size();
+        long succeededAssignees = succeededAssigneesCounter.getValue();
+        long totalArticles = totalArticlesCounter.getValue();
+
+        float average = totalArticles * 1f / totalAssignees;
+        float percentage = succeededAssignees * 1f / totalAssignees;
+
+        double stdev = Math.sqrt(counted.entrySet().stream().mapToDouble(entry -> Math.pow(entry.getKey() - average, 2) * entry.getValue()).sum() / totalAssignees);
 
         String delimiter = TextFormat.RESET.toString() + TextFormat.DARK_BLUE + "| " + TextFormat.BLUE;
 
-        Takoyaki.getInstance().getLogger().info(String.format("%s대상자: %s%d명 %s달성자: %s%d명 %s총 게시글: %s%d개 %s평균: %s%.2f개 %s달성률: %s%.2f%% %s소요시간: %s%.2f초 %s%n",
-                delimiter, TextFormat.BOLD, this.getAssignees().size(),
-                delimiter, TextFormat.BOLD, succeededAssignees.getValue(),
-                delimiter, TextFormat.BOLD, totalArticles.getValue(),
-                delimiter, TextFormat.BOLD, (float) totalArticles.getValue() / this.getAssignees().size(),
-                delimiter, TextFormat.BOLD, succeededAssignees.getValue() * 100f / this.getAssignees().size(),
+        Takoyaki.getInstance().getLogger().info(String.format("%s대상자: %s%d명 %s달성자: %s%d명 %s총 게시글: %s%d개 %s평균: %s%.2f개 %s표준편차: %s%.2f개 %s달성률: %s%.2f%% %s소요시간: %s%.2f초 %s%n",
+                delimiter, TextFormat.BOLD, totalAssignees,
+                delimiter, TextFormat.BOLD, succeededAssignees,
+                delimiter, TextFormat.BOLD, totalArticles,
+                delimiter, TextFormat.BOLD, average,
+                delimiter, TextFormat.BOLD, stdev,
+                delimiter, TextFormat.BOLD, percentage,
                 delimiter, TextFormat.BOLD, (System.currentTimeMillis() - start) / 1000f, delimiter));
     }
 
