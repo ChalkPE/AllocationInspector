@@ -82,6 +82,8 @@ public class AllocationInspector {
     }
 
     public void inspect(Date date){
+        long start = System.currentTimeMillis();
+
         Takoyaki.getInstance().getLogger().info(TextFormat.BOLD.toString() + TextFormat.BLUE + "[" + AllocationInspector.KOREAN_DATE_FORMAT.format(date) + " 게시글 할당제 달성 여부]");
 
         Comparator<Map.Entry<Member, List<MemberArticle>>> comparator = Comparator.comparing(entry -> -entry.getValue().size());
@@ -106,11 +108,13 @@ public class AllocationInspector {
 
         String delimiter = TextFormat.RESET.toString() + TextFormat.DARK_BLUE + "| " + TextFormat.BLUE;
 
-        Takoyaki.getInstance().getLogger().info(String.format("%s대상자: %s%d명 %s총 게시글: %s%d개 %s평균: %s%.2f개 %s달성률: %s%.2f%% %s%n",
+        Takoyaki.getInstance().getLogger().info(String.format("%s대상자: %s%d명 %s달성자: %s%d명 %s총 게시글: %s%d개 %s평균: %s%.2f개 %s달성률: %s%.2f%% %s소요시간: %s%.2f초 %s%n",
                 delimiter, TextFormat.BOLD, this.getAssignees().size(),
+                delimiter, TextFormat.BOLD, succeededAssignees.getValue(),
                 delimiter, TextFormat.BOLD, totalArticles.getValue(),
                 delimiter, TextFormat.BOLD, (float) totalArticles.getValue() / this.getAssignees().size(),
-                delimiter, TextFormat.BOLD, succeededAssignees.getValue() * 100f / this.getAssignees().size(), delimiter));
+                delimiter, TextFormat.BOLD, succeededAssignees.getValue() * 100f / this.getAssignees().size(),
+                delimiter, TextFormat.BOLD, (System.currentTimeMillis() - start) / 1000f, delimiter));
     }
 
     @SuppressWarnings("unused")
