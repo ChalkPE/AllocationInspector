@@ -125,7 +125,7 @@ public class AllocationInspector {
                 delimiter, TextFormat.BOLD, totalArticles,
                 delimiter, TextFormat.BOLD, average,
                 delimiter, TextFormat.BOLD, stdev,
-                delimiter, TextFormat.BOLD, percentage,
+                delimiter, TextFormat.BOLD, percentage * 100,
                 delimiter, TextFormat.BOLD, (System.currentTimeMillis() - start) / 1000f, delimiter));
     }
 
