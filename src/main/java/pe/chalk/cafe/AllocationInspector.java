@@ -130,7 +130,7 @@ public class AllocationInspector {
                 delimiter, TextFormat.BOLD, totalArticles,
                 delimiter, TextFormat.BOLD, (System.currentTimeMillis() - start) / 1000f, delimiter));
 
-        Takoyaki.getInstance().getLogger().info(String.format("%s참여율:ㅤ%s%4.1f%% %s달성률:ㅤ%s%4.1f%% %s1인당 평균:ㅤ%s%5.2f개 %s표준편차: %s%5.2f개 %s%n",
+        Takoyaki.getInstance().getLogger().info(String.format("%s참여율:　%s%4.1f%% %s달성률:　%s%4.1f%% %s1인당 평균:　%s%5.2f개 %s표준편차: %s%5.2f개 %s%n",
                 delimiter, TextFormat.BOLD, alivePercentage * 100,
                 delimiter, TextFormat.BOLD, succeededPercentage * 100,
                 delimiter, TextFormat.BOLD, average,
