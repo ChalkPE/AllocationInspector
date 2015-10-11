@@ -13,7 +13,10 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Date;
 import java.util.List;
+import java.util.Locale;
 import java.util.Properties;
 import java.util.stream.Collectors;
 
@@ -26,32 +29,30 @@ public class Main {
     public static Takoyaki takoyaki;
     public static List<AllocationInspector> inspectors;
 
-    public static void main(String[] args) throws IOException {
-        System.setErr(new PrintStream(new OutputStream(){
-            @Override
-            public void write(int b) throws IOException{
-                //DO NOTHING: I HATE ERROR MESSAGES!
-            }
-        }));
+    public static final PrintStream realErr = System.err;
+    public static final PrintStream fakeErr = new PrintStream(new OutputStream(){
+        @Override
+        public void write(int b) throws IOException{
+            //DO NOTHING
+        }
+    });
 
+    public static void main(String[] args) throws IOException {
         Main.takoyaki = new Takoyaki();
         Main.inspectors = new ArrayList<>();
-
-        //Takoyaki.getInstance().getLogger().debug("new Staff...");
-
         try{
             Properties accountProperties = new Properties();
             accountProperties.load(new FileInputStream("account.properties"));
-
             Takoyaki.getInstance().getLogger().info("네이버에 로그인합니다: " + accountProperties.getProperty("user.id"));
+
+            System.setErr(Main.fakeErr);
             Main.staff = new Staff(null, accountProperties);
+            System.setErr(Main.realErr);
         }catch(IllegalStateException e){
             Takoyaki.getInstance().getLogger().critical("네이버에 로그인할 수 없습니다!");
             return;
         }
         Main.staff.getOptions().setJavaScriptEnabled(false);
-
-        //Takoyaki.getInstance().getLogger().debug("loading JSON...");
 
         Path propertiesPath = Paths.get("AllocationInspector.json");
         if(Files.notExists(propertiesPath)){
@@ -60,5 +61,12 @@ public class Main {
 
         JSONObject properties = new JSONObject(new String(Files.readAllBytes(propertiesPath), StandardCharsets.UTF_8));
         Main.inspectors.addAll(Takoyaki.<JSONObject>buildStream(properties.getJSONArray("targets")).map(AllocationInspector::new).collect(Collectors.toList()));
+
+        Calendar calendar = Calendar.getInstance(Locale.KOREA);
+        Date today = calendar.getTime(); calendar.add(Calendar.DATE, -1);
+        Date yesterday = calendar.getTime();
+
+        Main.inspectors.forEach(inspector -> inspector.inspect(yesterday));
+        Main.inspectors.forEach(inspector -> inspector.inspect(today));
     }
 }
