@@ -61,6 +61,8 @@ public class AllocationInspector {
     }
 
     public Document getRecentMemberArticles(Member member) throws IOException {
+        try{Thread.sleep(100);}catch(InterruptedException e){e.printStackTrace();}
+
         URL recentMemberArticlesUrl = new URL(String.format(AllocationInspector.MEMBER_RECENT_ARTICLES_URL, this.getClubId(), this.getClubId(), member.getId()));
         return Jsoup.parse(Main.staff.getPage(recentMemberArticlesUrl).getWebResponse().getContentAsString());
     }
@@ -122,15 +124,17 @@ public class AllocationInspector {
 
         String delimiter = TextFormat.RESET.toString() + TextFormat.DARK_BLUE + "| " + TextFormat.BLUE;
 
-        Takoyaki.getInstance().getLogger().info(String.format("%s대상자: %s%d명 %s달성자: %s%d명 %s총 게시글: %s%d개 %s평균: %s%.2f개 %s표준편차: %s%.2f개 %s참여율: %s%.2f%% %s달성률: %s%.2f%% %s소요시간: %s%.2f초 %s%n",
+        Takoyaki.getInstance().getLogger().info(String.format("%s대상자: %s%4d명 %s달성자: %s%4d명 %s총 게시글 수: %s%4d개 %s소요시간: %s%5.2f초 %s",
                 delimiter, TextFormat.BOLD, totalAssignees,
                 delimiter, TextFormat.BOLD, succeededAssignees,
                 delimiter, TextFormat.BOLD, totalArticles,
-                delimiter, TextFormat.BOLD, average,
-                delimiter, TextFormat.BOLD, stdev,
+                delimiter, TextFormat.BOLD, (System.currentTimeMillis() - start) / 1000f, delimiter));
+
+        Takoyaki.getInstance().getLogger().info(String.format("%s참여율:ㅤ%s%4.1f%% %s달성률:ㅤ%s%4.1f%% %s1인당 평균:ㅤ%s%5.2f개 %s표준편차: %s%5.2f개 %s%n",
                 delimiter, TextFormat.BOLD, alivePercentage * 100,
                 delimiter, TextFormat.BOLD, succeededPercentage * 100,
-                delimiter, TextFormat.BOLD, (System.currentTimeMillis() - start) / 1000f, delimiter));
+                delimiter, TextFormat.BOLD, average,
+                delimiter, TextFormat.BOLD, stdev, delimiter));
     }
 
     @SuppressWarnings("unused")

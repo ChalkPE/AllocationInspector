@@ -37,7 +37,7 @@ public class Main {
         }
     });
 
-    public static void main(String[] args) throws IOException {
+    public static void main(String[] args) throws IOException, InterruptedException {
         Main.takoyaki = new Takoyaki();
         Main.inspectors = new ArrayList<>();
         try{
@@ -63,14 +63,20 @@ public class Main {
         Main.inspectors.addAll(Takoyaki.<JSONObject>buildStream(properties.getJSONArray("targets")).map(AllocationInspector::new).collect(Collectors.toList()));
 
         Calendar calendar = Calendar.getInstance(Locale.KOREA);
-        Date today = calendar.getTime();
 
-        //calendar.add(Calendar.DATE, -1);
-        //Date yesterday = calendar.getTime();
+        //Date today = calendar.getTime();
+
+        calendar.add(Calendar.DATE, -1);
+        Date yesterday = calendar.getTime();
 
         //noinspection InfiniteLoopStatement
-        while(true) Main.inspectors.forEach(inspector -> inspector.inspect(today));
+        //while(true){
+            //Main.inspectors.forEach(inspector -> inspector.inspect(today));
+            //Thread.sleep(1000);
 
-        //Main.inspectors.forEach(inspector -> inspector.inspect(yesterday));
+            Main.inspectors.forEach(inspector -> inspector.inspect(yesterday));
+            //Thread.sleep(1000);
+        //}
+
     }
 }
