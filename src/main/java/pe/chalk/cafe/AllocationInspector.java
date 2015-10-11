@@ -82,7 +82,7 @@ public class AllocationInspector {
     }
 
     public void inspect(Date date){
-        Takoyaki.getInstance().getLogger().info(TextFormat.GOLD + "[" + AllocationInspector.KOREAN_DATE_FORMAT.format(date) + " 게시글 할당제 달성 여부]");
+        Takoyaki.getInstance().getLogger().info(TextFormat.BOLD.toString() + TextFormat.AQUA + "[" + AllocationInspector.KOREAN_DATE_FORMAT.format(date) + " 게시글 할당제 달성 여부]");
 
         Comparator<Map.Entry<Member, List<MemberArticle>>> comparator = Comparator.comparing(entry -> -entry.getValue().size());
         comparator = comparator.thenComparing(entry -> entry.getValue().size() <= 0 ? Integer.MAX_VALUE : entry.getValue().get(entry.getValue().size() >= this.getAllocatedArticles() ? (int) this.getAllocatedArticles() - 1 : 0).getId());
@@ -93,7 +93,7 @@ public class AllocationInspector {
             boolean done = count >= this.getAllocatedArticles();
 
             String last = count <= 0 ? "     " : (done ? entry.getValue().get((int) this.getAllocatedArticles() - 1) : entry.getValue().get(0)).getUploadDateAndTime().substring(12);
-            Takoyaki.getInstance().getLogger().info(String.format("%s%2d/%d %s %s %s", done ? TextFormat.GREEN : TextFormat.RED, count, this.getAllocatedArticles(), done ? "SUCCESS" : "FAILURE", last, entry.getKey()));
+            Takoyaki.getInstance().getLogger().info(String.format("%s%2d/%d %s %s %s", count <= 0 ? TextFormat.DARK_RED : (done ? TextFormat.GREEN : (count >= this.getAllocatedArticles() / 2.0 ? TextFormat.YELLOW : TextFormat.RED)), count, this.getAllocatedArticles(), done ? "SUCCESS" : "FAILURE", last, entry.getKey()));
         });
     }
 }
