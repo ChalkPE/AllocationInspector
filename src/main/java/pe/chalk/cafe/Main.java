@@ -63,10 +63,14 @@ public class Main {
         Main.inspectors.addAll(Takoyaki.<JSONObject>buildStream(properties.getJSONArray("targets")).map(AllocationInspector::new).collect(Collectors.toList()));
 
         Calendar calendar = Calendar.getInstance(Locale.KOREA);
-        Date today = calendar.getTime(); calendar.add(Calendar.DATE, -1);
-        Date yesterday = calendar.getTime();
+        Date today = calendar.getTime();
 
-        Main.inspectors.forEach(inspector -> inspector.inspect(yesterday));
-        Main.inspectors.forEach(inspector -> inspector.inspect(today));
+        //calendar.add(Calendar.DATE, -1);
+        //Date yesterday = calendar.getTime();
+
+        //noinspection InfiniteLoopStatement
+        while(true) Main.inspectors.forEach(inspector -> inspector.inspect(today));
+
+        //Main.inspectors.forEach(inspector -> inspector.inspect(yesterday));
     }
 }

@@ -88,6 +88,8 @@ public class AllocationInspector {
         comparator = comparator.thenComparing(entry -> entry.getValue().size() <= 0 ? Integer.MAX_VALUE : entry.getValue().get(entry.getValue().size() >= this.getAllocatedArticles() ? (int) this.getAllocatedArticles() - 1 : 0).getId());
         comparator = comparator.thenComparing(entry -> entry.getKey().toString());
 
+        final Counter succeededAssignees = new Counter(), totalArticles = new Counter();
+
         this.getAssignees().stream().collect(Collectors.toMap(assignee -> assignee, assignee -> this.getArticles(assignee, date))).entrySet().stream().sorted(comparator).forEach(entry -> {
             int count = entry.getValue().size();
             boolean done = count >= this.getAllocatedArticles();
@@ -95,7 +97,66 @@ public class AllocationInspector {
             String last = count <= 0 ? "     " : (done ? entry.getValue().get((int) this.getAllocatedArticles() - 1) : entry.getValue().get(0)).getUploadDateAndTime().substring(12);
             TextFormat format = count <= 0 ? TextFormat.DARK_RED : (done ? (count == this.getAllocatedArticles() ? TextFormat.GREEN : TextFormat.AQUA) : (count >= this.getAllocatedArticles() / 2.0 ? TextFormat.YELLOW : TextFormat.RED));
 
-            Takoyaki.getInstance().getLogger().info(String.format("%s%2d/%d %s %s %s", format, count, this.getAllocatedArticles(), done ? "SUCCESS" : "FAILURE", last, entry.getKey()));
+            Takoyaki.getInstance().getLogger().info(String.format("%s%s%2d/%d %s%s%s %s %s", format, TextFormat.BOLD,
+                    count, this.getAllocatedArticles(), done ? "SUCCESS" : "FAILURE", TextFormat.RESET, format, last, entry.getKey()));
+
+            totalArticles.add(count);
+            if(done) succeededAssignees.increase();
         });
+
+        String delimiter = TextFormat.RESET.toString() + TextFormat.DARK_BLUE + "| " + TextFormat.BLUE;
+
+        Takoyaki.getInstance().getLogger().info(String.format("%s대상자: %s%d명 %s총 게시글: %s%d개 %s평균: %s%.2f개 %s달성률: %s%.2f%% %s%n",
+                delimiter, TextFormat.BOLD, this.getAssignees().size(),
+                delimiter, TextFormat.BOLD, totalArticles.getValue(),
+                delimiter, TextFormat.BOLD, (float) totalArticles.getValue() / this.getAssignees().size(),
+                delimiter, TextFormat.BOLD, succeededAssignees.getValue() * 100f / this.getAssignees().size(), delimiter));
+    }
+
+    @SuppressWarnings("unused")
+    public class Counter {
+        public long value;
+
+        public Counter(){
+            this(0L);
+        }
+
+        public Counter(long value){
+            this.value = value;
+        }
+
+        public long getValue(){
+            return this.value;
+        }
+
+        public Counter setValue(long value){
+            this.value = value;
+
+            return this;
+        }
+
+        public Counter add(long value){
+            this.value += value;
+
+            return this;
+        }
+
+        public Counter subtract(long value){
+            this.value -= value;
+
+            return this;
+        }
+
+        public Counter increase(){
+            this.value++;
+
+            return this;
+        }
+
+        public Counter decrease(){
+            this.value--;
+
+            return this;
+        }
     }
 }
