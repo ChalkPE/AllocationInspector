@@ -94,7 +94,7 @@ public class AllocationInspector {
 
     public Collection<String> inspect(Date date){
         Collection<String> messages = new ArrayList<>();
-        messages.add(String.format("%n%n%s%s[%s]", TextFormat.BOLD, TextFormat.BLUE, AllocationInspector.KOREAN_DATE_FORMAT.format(date)));
+        messages.add(String.format("%s%s[%s]", TextFormat.BOLD, TextFormat.BLUE, AllocationInspector.KOREAN_DATE_FORMAT.format(date)));
 
         final long start = System.currentTimeMillis();
 
