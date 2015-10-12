@@ -11,6 +11,9 @@ import pe.chalk.takoyaki.utils.TextFormat;
 import java.io.IOException;
 import java.net.URL;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.Date;
 import java.util.List;
 import java.util.Locale;
@@ -25,6 +28,8 @@ public class AllocationInspector {
     public static final String MEMBER_RECENT_ARTICLES_URL = "http://cafe.naver.com/CafeMemberNetworkArticleList.nhn?clubid=%s&search.clubid=%s&search.writerid=%s";
     public static final SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("yyyy.MM.dd.", Locale.KOREA);
     public static final SimpleDateFormat KOREAN_DATE_FORMAT = new SimpleDateFormat("yyyy년 MM월 dd일", Locale.KOREA);
+
+    public static final String DELIMITER = TextFormat.RESET.toString() + TextFormat.DARK_BLUE + "| " + TextFormat.BLUE;
 
     private int clubId;
     private int allocatedArticles;
@@ -56,17 +61,15 @@ public class AllocationInspector {
     }
 
     public Document getRecentMemberArticles(Member member) throws IOException {
-        try{Thread.sleep(50);}catch(InterruptedException e){e.printStackTrace();}
-
-        URL recentMemberArticlesUrl = new URL(String.format(AllocationInspector.MEMBER_RECENT_ARTICLES_URL, this.getClubId(), this.getClubId(), member.getId()));
-        return Jsoup.parse(Main.staff.getPage(recentMemberArticlesUrl).getWebResponse().getContentAsString());
+        Main.delay(50);
+        return Jsoup.parse(Main.staff.getPage(new URL(String.format(AllocationInspector.MEMBER_RECENT_ARTICLES_URL, this.getClubId(), this.getClubId(), member.getId()))).getWebResponse().getContentAsString());
     }
 
     public List<MemberArticle> getArticles(Member member, Date date){
-        String today = AllocationInspector.DATE_FORMAT.format(date);
-
+        final String today = AllocationInspector.DATE_FORMAT.format(date);
         try{
-            return this.getRecentMemberArticles(member).select("tr[align=center]:not([class])").stream()
+            return this.getRecentMemberArticles(member)
+                    .select("tr[align=center]:not([class])").stream()
                     .map(element -> MemberArticle.fromElement(element, this.getClubId(), member))
                     .filter(article -> article.getUploadDate().equals(today))
                     .filter(article -> article.getMenuId() != 30)
@@ -79,88 +82,90 @@ public class AllocationInspector {
     }
 
     public void inspect(Date date){
-        long time = System.currentTimeMillis();
-        int totalAssignees = this.getAssignees().size();
-
         Takoyaki.getInstance().getLogger().info(TextFormat.BOLD.toString() + TextFormat.BLUE + "[" + AllocationInspector.KOREAN_DATE_FORMAT.format(date) + "]");
-        List<Result> results = this.getAssignees().stream().map(assignee -> new Result(assignee, this.getArticles(assignee, date), this.getAllocatedArticles())).sorted().collect(Collectors.toList());
+        final long start = System.currentTimeMillis();
 
-        long aliveAssignees     = results.stream().filter(Result::isAlive).count();
-        long succeededAssignees = results.stream().filter(Result::isSucceeded).count();
-        long totalArticles      = results.stream().mapToLong(Result::size).sum();
+        final List<Result> results = this.getAssignees().stream().map(assignee -> new Result(assignee, this.getArticles(assignee, date), this.getAllocatedArticles())).sorted().collect(Collectors.toList());
+        this.printResultsWithRank(results);
 
-        double average             =      totalArticles * 1.0 / totalAssignees;
-        double alivePercentage     =     aliveAssignees * 1.0 / totalAssignees;
-        double succeededPercentage = succeededAssignees * 1.0 / totalAssignees;
+        final long aliveAssignees     = results.stream().filter(Result::isAlive).count();
+        final long succeededAssignees = results.stream().filter(Result::isSucceeded).count();
+        final long totalArticles      = results.stream().mapToLong(Result::size).sum();
 
-        Map<Integer, Long> map = results.stream().collect(Collectors.groupingBy(Result::size, Collectors.counting()));
-        double standardDeviation = Math.sqrt(map.entrySet().stream().mapToDouble(entry -> Math.pow(entry.getKey() - average, 2) * entry.getValue()).sum() / totalAssignees);
+        final int totalAssignees = this.getAssignees().size();
 
-        //TODO: Print results with rank
+        final double average             =      totalArticles * 1.0 / totalAssignees;
+        final double alivePercentage     =     aliveAssignees * 1.0 / totalAssignees;
+        final double succeededPercentage = succeededAssignees * 1.0 / totalAssignees;
 
-        time = System.currentTimeMillis() - time;
-
-        String delimiter = TextFormat.RESET.toString() + TextFormat.DARK_BLUE + "| " + TextFormat.BLUE;
+        final Map<Integer, Long> map = results.stream().collect(Collectors.groupingBy(Result::size, Collectors.counting()));
+        final double standardDeviation = Math.sqrt(map.entrySet().stream().mapToDouble(entry -> Math.pow(entry.getKey() - average, 2) * entry.getValue()).sum() / totalAssignees);
 
         Takoyaki.getInstance().getLogger().info(String.format("%s참여자: %s%4d명 %s달성자: %s%4d명 %s총 게시글 수: %s%4d개 %s소요시간: %s%5.2f초 %s",
-                delimiter, TextFormat.BOLD, aliveAssignees,
-                delimiter, TextFormat.BOLD, succeededAssignees,
-                delimiter, TextFormat.BOLD, totalArticles,
-                delimiter, TextFormat.BOLD, time / 1000.0,
-                delimiter));
+                AllocationInspector.DELIMITER, TextFormat.BOLD, aliveAssignees,
+                AllocationInspector.DELIMITER, TextFormat.BOLD, succeededAssignees,
+                AllocationInspector.DELIMITER, TextFormat.BOLD, totalArticles,
+                AllocationInspector.DELIMITER, TextFormat.BOLD, (System.currentTimeMillis() - start) / 1000.0,
+                AllocationInspector.DELIMITER));
 
         Takoyaki.getInstance().getLogger().info(String.format("%s참여율:　%s%4.1f%% %s달성률:　%s%4.1f%% %s1인당 평균:　%s%5.2f개 %s표준편차: %s%5.2f개 %s%n",
-                delimiter, TextFormat.BOLD, alivePercentage * 100,
-                delimiter, TextFormat.BOLD, succeededPercentage * 100,
-                delimiter, TextFormat.BOLD, average,
-                delimiter, TextFormat.BOLD, standardDeviation,
-                delimiter));
+                AllocationInspector.DELIMITER, TextFormat.BOLD, alivePercentage * 100,
+                AllocationInspector.DELIMITER, TextFormat.BOLD, succeededPercentage * 100,
+                AllocationInspector.DELIMITER, TextFormat.BOLD, average,
+                AllocationInspector.DELIMITER, TextFormat.BOLD, standardDeviation,
+                AllocationInspector.DELIMITER));
     }
 
-    @SuppressWarnings("unused")
-    public class Counter {
-        public long value;
+    private void printResultsWithRank(final List<Result> results){
+        final List<Rank<Result>> ranks = new ArrayList<>();
+        final int size = results.size();
 
-        public Counter(){
-            this(0L);
+        Rank<Result> currentRank = new Rank<>(0);
+        for(int i = 0; i < size; i++){
+            Result result = results.get(i);
+            Result before = i == 0 ? null : results.get(i - 1);
+
+            if(before != null && Result.COMPARATOR.compare(before, result) != 0){
+                ranks.add(currentRank);
+                currentRank = new Rank<>(i);
+            }
+            currentRank.add(result);
+        }
+        ranks.add(currentRank);
+
+        ranks.forEach(rank -> rank.getRankers(Comparator.comparing((Result result) -> result.getWriter().toString())).forEach(result -> Takoyaki.getInstance().getLogger().info(result.toString(String.format("#%02d", rank.getRank() + 1)))));
+    }
+
+    class Rank<T>{
+        private int rank;
+        private ArrayList<T> rankers;
+
+        public Rank(int rank){
+            this(rank, new ArrayList<>());
         }
 
-        public Counter(long value){
-            this.value = value;
+        public Rank(int rank, ArrayList<T> rankers){
+            this.rank = rank;
+            this.rankers = rankers;
         }
 
-        public long getValue(){
-            return this.value;
+        public int getRank(){
+            return this.rank;
         }
 
-        public Counter setValue(long value){
-            this.value = value;
-
-            return this;
+        public ArrayList<T> getRankers(){
+            return this.rankers;
         }
 
-        public Counter add(long value){
-            this.value += value;
+        public ArrayList<T> getRankers(Comparator<T> comparator){
+            ArrayList<T> rankers = new ArrayList<>(this.getRankers());
+            Collections.sort(rankers, comparator);
 
-            return this;
+            return rankers;
         }
 
-        public Counter subtract(long value){
-            this.value -= value;
-
-            return this;
-        }
-
-        public Counter increase(){
-            this.value++;
-
-            return this;
-        }
-
-        public Counter decrease(){
-            this.value--;
-
-            return this;
+        public boolean add(T t){
+            return rankers.add(t);
         }
     }
 }

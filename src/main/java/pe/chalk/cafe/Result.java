@@ -11,8 +11,8 @@ import java.util.Optional;
  * @author ChalkPE <chalkpe@gmail.com>
  * @since 2015-10-12
  */
-public class Result implements Comparator<Result> {
-    public static final Comparator<Result> COMPARATOR = Comparator.comparingInt((Result result) -> result.getArticles().size()).thenComparingInt(result -> result.getMajorArticleId().orElse(Integer.MAX_VALUE));
+public class Result implements Comparable<Result>, Comparator<Result> {
+    public static final Comparator<Result> COMPARATOR = Comparator.comparingInt((Result result) -> -result.getArticles().size()).thenComparingInt(result -> result.getMajorArticleId().orElse(Integer.MAX_VALUE));
 
     private Member writer;
     private List<MemberArticle> articles;
@@ -84,6 +84,11 @@ public class Result implements Comparator<Result> {
         else if(this.isSucceeded()) return TextFormat.GREEN;
         else if(this.isHalfDone()) return TextFormat.YELLOW;
         else return TextFormat.RED;
+    }
+
+    @Override
+    public int compareTo(@SuppressWarnings("NullableProblems") Result that){
+        return this.compare(this, that);
     }
 
     @Override

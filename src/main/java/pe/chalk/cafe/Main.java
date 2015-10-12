@@ -30,6 +30,8 @@ public class Main {
     public static Takoyaki takoyaki;
     public static List<AllocationInspector> inspectors;
 
+    public static boolean DELAY = true;
+
     public static final PrintStream realErr = System.err;
     public static final PrintStream fakeErr = new PrintStream(new OutputStream(){
         @Override
@@ -74,14 +76,23 @@ public class Main {
         calendar.add(Calendar.DATE, -1);
         Date yesterday = calendar.getTime();
 
-        //noinspection InfiniteLoopStatement
-        //while(true){
-            Main.inspectors.forEach(inspector -> inspector.inspect(today));
-            Thread.sleep(1000);
+        Main.inspectors.forEach(inspector -> inspector.inspect(today));
+        Thread.sleep(1000);
 
-            Main.inspectors.forEach(inspector -> inspector.inspect(yesterday));
-            Thread.sleep(1000);
-        //}
+        Main.inspectors.forEach(inspector -> inspector.inspect(yesterday));
+        Thread.sleep(1000);
 
+    }
+
+    public static boolean delay(long millis){
+        if(!Main.DELAY) return false;
+
+        try{
+            Thread.sleep(millis);
+            return true;
+        }catch(InterruptedException e){
+            e.printStackTrace();
+            return false;
+        }
     }
 }
