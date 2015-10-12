@@ -132,7 +132,7 @@ public class AllocationInspector {
         }
         ranks.add(currentRank);
 
-        ranks.forEach(rank -> rank.getRankers(Comparator.comparing((Result result) -> result.getWriter().toString())).forEach(result -> Takoyaki.getInstance().getLogger().info(result.toString(String.format("#%02d", rank.getRank() + 1)))));
+        ranks.forEach(rank -> rank.getRankers(Comparator.comparing((Result result) -> result.getWriter().toString())).forEach(result -> Takoyaki.getInstance().getLogger().info(result.toString(String.format("#%02d ", rank.getRank() + 1)))));
     }
 
     class Rank<T>{

@@ -15,7 +15,6 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Calendar;
-import java.util.Date;
 import java.util.List;
 import java.util.Locale;
 import java.util.Properties;
@@ -70,17 +69,14 @@ public class Main {
             Takoyaki.getInstance().getLogger().info("게시글을 검사합니다: 대상자 " + inspector.getAssignees().size() + "명: " + target.getName() + " (ID: " + target.getClubId() + ")");
         });
 
-        Calendar calendar = Calendar.getInstance(Locale.KOREA);
-        Date today = calendar.getTime();
+        //noinspection InfiniteLoopStatement
+        while(true){
+            Calendar calendar = Calendar.getInstance(Locale.KOREA);
 
-        calendar.add(Calendar.DATE, -1);
-        Date yesterday = calendar.getTime();
+            Main.inspectors.forEach(inspector -> inspector.inspect(calendar.getTime())); Thread.sleep(1000);
+            //calendar.add(Calendar.DATE, -1); Main.inspectors.forEach(inspector -> inspector.inspect(calendar.getTime())); Thread.sleep(1000);
+        }
 
-        Main.inspectors.forEach(inspector -> inspector.inspect(today));
-        Thread.sleep(1000);
-
-        Main.inspectors.forEach(inspector -> inspector.inspect(yesterday));
-        Thread.sleep(1000);
 
     }
 
