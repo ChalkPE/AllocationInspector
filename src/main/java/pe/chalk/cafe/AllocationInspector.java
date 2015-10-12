@@ -2,7 +2,6 @@ package pe.chalk.cafe;
 
 import org.json.JSONObject;
 import org.jsoup.Jsoup;
-import org.jsoup.nodes.Document;
 import pe.chalk.takoyaki.Takoyaki;
 import pe.chalk.takoyaki.Target;
 import pe.chalk.takoyaki.model.Member;
@@ -26,7 +25,7 @@ import java.util.stream.Collectors;
  * @since 2015-10-10
  */
 public class AllocationInspector {
-    public static final String MEMBER_RECENT_ARTICLES_URL = "http://cafe.naver.com/CafeMemberNetworkArticleList.nhn?clubid=%s&search.clubid=%s&search.writerid=%s";
+    public static final String MEMBER_RECENT_ARTICLES_URL = "http://cafe.naver.com/CafeMemberNetworkArticleList.nhn?clubid=%s&search.clubid=%s&search.writerid=%s&search.page=%d";
     public static final SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("yyyy.MM.dd.", Locale.KOREA);
     public static final SimpleDateFormat KOREAN_DATE_FORMAT = new SimpleDateFormat("yyyy년 MM월 dd일 HH시 mm분", Locale.KOREA);
 
@@ -61,18 +60,29 @@ public class AllocationInspector {
         return Takoyaki.getInstance().getTarget(this.getClubId());
     }
 
-    public Document getRecentMemberArticles(Member member) throws IOException {
-        Main.delay(50);
-        return Jsoup.parse(Main.staff.getPage(new URL(String.format(AllocationInspector.MEMBER_RECENT_ARTICLES_URL, this.getClubId(), this.getClubId(), member.getId()))).getWebResponse().getContentAsString());
+    public List<MemberArticle> getRecentMemberArticles(Member member, int page) throws IOException {
+        Main.delay(750);
+        URL url = new URL(String.format(AllocationInspector.MEMBER_RECENT_ARTICLES_URL, this.getClubId(), this.getClubId(), member.getId(), page));
+
+        return Jsoup.parse(Main.staff.getPage(url).getWebResponse().getContentAsString())
+                .select("tr[align=center]:not([class])").stream()
+                .map(element -> MemberArticle.fromElement(element, this.getClubId(), member))
+                .collect(Collectors.toList());
     }
 
     public List<MemberArticle> getArticles(Member member, Date date){
+        return this.getArticles(member, date, 1);
+    }
+
+    public List<MemberArticle> getArticles(Member member, Date date, int page){
         final String today = AllocationInspector.DATE_FORMAT.format(date);
         try{
-            return this.getRecentMemberArticles(member)
-                    .select("tr[align=center]:not([class])").stream()
-                    .map(element -> MemberArticle.fromElement(element, this.getClubId(), member))
-                    .filter(article -> article.getUploadDate().equals(today))
+            List<MemberArticle> articles = this.getRecentMemberArticles(member, page);
+            if(articles.stream().map(MemberArticle::getUploadDate).distinct().count() == 1){
+                articles.addAll(this.getArticles(member, date, page + 1));
+            }
+
+            return articles.stream().filter(article -> article.getUploadDate().equals(today))
                     .filter(article -> article.getMenuId() != 30)
                     .sorted((a, b) -> a.getId() - b.getId())
                     .collect(Collectors.toList());

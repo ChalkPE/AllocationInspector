@@ -4,6 +4,7 @@ import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
+import pe.chalk.takoyaki.Takoyaki;
 import pe.chalk.takoyaki.model.Member;
 import pe.chalk.takoyaki.model.SimpleArticle;
 import pe.chalk.takoyaki.utils.TextFormat;
@@ -29,6 +30,8 @@ public class MemberArticle extends SimpleArticle {
 
         this.uploadDate = uploadDate;
         this.writer = writer;
+
+        Takoyaki.getInstance().getLogger().debug(this.toString());
     }
 
     public static MemberArticle fromElement(Element element, int targetId, Member writer){

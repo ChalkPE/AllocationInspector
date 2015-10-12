@@ -33,6 +33,7 @@ public class Main {
 
     public static boolean DELAY = true;
     public static String html;
+    public static Path htmlOutput;
 
     public static final PrintStream realErr = System.err;
     public static final PrintStream fakeErr = new PrintStream(new OutputStream(){
@@ -64,11 +65,12 @@ public class Main {
             return;
         }
 
-        Main.html = new String(Files.readAllBytes(Paths.get("status.html")), StandardCharsets.UTF_8);
-
         JSONObject properties = new JSONObject(new String(Files.readAllBytes(propertiesPath), StandardCharsets.UTF_8));
-        Main.inspectors.addAll(Takoyaki.<JSONObject>buildStream(properties.getJSONArray("targets")).map(AllocationInspector::new).collect(Collectors.toList()));
 
+        Main.html = new String(Files.readAllBytes(Paths.get(properties.getString("htmlInput"))), StandardCharsets.UTF_8);
+        Main.htmlOutput = Paths.get(properties.getString("htmlOutput"));
+
+        Main.inspectors.addAll(Takoyaki.<JSONObject>buildStream(properties.getJSONArray("targets")).map(AllocationInspector::new).collect(Collectors.toList()));
         Main.inspectors.forEach(inspector -> {
             Target target = Takoyaki.getInstance().getTarget(inspector.getClubId());
             Takoyaki.getInstance().getLogger().info("게시글을 검사합니다: 대상자 " + inspector.getAssignees().size() + "명: " + target.getName() + " (ID: " + target.getClubId() + ")");
@@ -95,8 +97,7 @@ public class Main {
 
     public static void html(String messages){
         try{
-            Files.write(Paths.get("html", "api", "status.html"),
-                    String.format(Main.html, TextFormat.replaceTo(TextFormat.Type.HTML, messages.replaceAll(" ", "&nbsp;"))).getBytes(StandardCharsets.UTF_8));
+            Files.write(Main.htmlOutput, String.format(Main.html, TextFormat.replaceTo(TextFormat.Type.HTML, messages.replaceAll(" ", "&nbsp;"))).getBytes(StandardCharsets.UTF_8));
         }catch(Exception e){
             e.printStackTrace();
         }
