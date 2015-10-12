@@ -101,14 +101,14 @@ public class AllocationInspector {
         final Map<Integer, Long> map = results.stream().collect(Collectors.groupingBy(Result::size, Collectors.counting()));
         final double standardDeviation = Math.sqrt(map.entrySet().stream().mapToDouble(entry -> Math.pow(entry.getKey() - average, 2) * entry.getValue()).sum() / totalAssignees);
 
-        Takoyaki.getInstance().getLogger().info(String.format("%s참여자: %s%4d명 %s달성자: %s%4d명 %s총 게시글 수: %s%4d개 %s소요시간: %s%5.2f초 %s",
+        Takoyaki.getInstance().getLogger().info(String.format("%s참여자: %s%4d명 %s달성자: %s%4d명 %s총합: %s%5d개 %s소요시간: %s%5.2f초 %s",
                 AllocationInspector.DELIMITER, TextFormat.BOLD, aliveAssignees,
                 AllocationInspector.DELIMITER, TextFormat.BOLD, succeededAssignees,
                 AllocationInspector.DELIMITER, TextFormat.BOLD, totalArticles,
                 AllocationInspector.DELIMITER, TextFormat.BOLD, (System.currentTimeMillis() - start) / 1000.0,
                 AllocationInspector.DELIMITER));
 
-        Takoyaki.getInstance().getLogger().info(String.format("%s참여율:　%s%4.1f%% %s달성률:　%s%4.1f%% %s1인당 평균:　%s%5.2f개 %s표준편차: %s%5.2f개 %s%n",
+        Takoyaki.getInstance().getLogger().info(String.format("%s참여율:　%s%4.1f%% %s달성률:　%s%4.1f%% %s평균: %s%5.2f개 %s표준편차: %s%5.2f개 %s%n",
                 AllocationInspector.DELIMITER, TextFormat.BOLD, alivePercentage * 100,
                 AllocationInspector.DELIMITER, TextFormat.BOLD, succeededPercentage * 100,
                 AllocationInspector.DELIMITER, TextFormat.BOLD, average,
@@ -123,9 +123,8 @@ public class AllocationInspector {
         Rank<Result> currentRank = new Rank<>(0);
         for(int i = 0; i < size; i++){
             Result result = results.get(i);
-            Result before = i == 0 ? null : results.get(i - 1);
 
-            if(before != null && Result.COMPARATOR.compare(before, result) != 0){
+            if(i != 0 && Result.COMPARATOR.compare(results.get(i - 1), result) != 0){
                 ranks.add(currentRank);
                 currentRank = new Rank<>(i);
             }
