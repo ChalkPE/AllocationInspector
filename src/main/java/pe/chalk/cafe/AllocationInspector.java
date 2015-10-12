@@ -12,6 +12,7 @@ import java.io.IOException;
 import java.net.URL;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.Date;
@@ -27,7 +28,7 @@ import java.util.stream.Collectors;
 public class AllocationInspector {
     public static final String MEMBER_RECENT_ARTICLES_URL = "http://cafe.naver.com/CafeMemberNetworkArticleList.nhn?clubid=%s&search.clubid=%s&search.writerid=%s";
     public static final SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("yyyy.MM.dd.", Locale.KOREA);
-    public static final SimpleDateFormat KOREAN_DATE_FORMAT = new SimpleDateFormat("yyyy년 MM월 dd일", Locale.KOREA);
+    public static final SimpleDateFormat KOREAN_DATE_FORMAT = new SimpleDateFormat("yyyy년 MM월 dd일 HH시 mm분", Locale.KOREA);
 
     public static final String DELIMITER = TextFormat.RESET.toString() + TextFormat.DARK_BLUE + "| " + TextFormat.BLUE;
 
@@ -81,12 +82,14 @@ public class AllocationInspector {
         }
     }
 
-    public void inspect(Date date){
-        Takoyaki.getInstance().getLogger().info(TextFormat.BOLD.toString() + TextFormat.BLUE + "[" + AllocationInspector.KOREAN_DATE_FORMAT.format(date) + "]");
+    public Collection<String> inspect(Date date){
+        Collection<String> messages = new ArrayList<>();
+        messages.add(String.format("%n%n%s%s[%s]", TextFormat.BOLD, TextFormat.BLUE, AllocationInspector.KOREAN_DATE_FORMAT.format(date)));
+
         final long start = System.currentTimeMillis();
 
         final List<Result> results = this.getAssignees().stream().map(assignee -> new Result(assignee, this.getArticles(assignee, date), this.getAllocatedArticles())).sorted().collect(Collectors.toList());
-        this.printResultsWithRank(results);
+        messages.addAll(this.printResultsWithRank(results));
 
         final long aliveAssignees     = results.stream().filter(Result::isAlive).count();
         final long succeededAssignees = results.stream().filter(Result::isSucceeded).count();
@@ -101,22 +104,24 @@ public class AllocationInspector {
         final Map<Integer, Long> map = results.stream().collect(Collectors.groupingBy(Result::size, Collectors.counting()));
         final double standardDeviation = Math.sqrt(map.entrySet().stream().mapToDouble(entry -> Math.pow(entry.getKey() - average, 2) * entry.getValue()).sum() / totalAssignees);
 
-        Takoyaki.getInstance().getLogger().info(String.format("%s참여자: %s%4d명 %s달성자: %s%4d명 %s총합: %s%5d개 %s소요시간: %s%5.2f초 %s",
+        messages.add(String.format("%s참여자: %s%4d명 %s달성자: %s%4d명 %s총합: %s%5d개 %s소요시간: %s%5.2f초 %s",
                 AllocationInspector.DELIMITER, TextFormat.BOLD, aliveAssignees,
                 AllocationInspector.DELIMITER, TextFormat.BOLD, succeededAssignees,
                 AllocationInspector.DELIMITER, TextFormat.BOLD, totalArticles,
                 AllocationInspector.DELIMITER, TextFormat.BOLD, (System.currentTimeMillis() - start) / 1000.0,
                 AllocationInspector.DELIMITER));
 
-        Takoyaki.getInstance().getLogger().info(String.format("%s참여율:　%s%4.1f%% %s달성률:　%s%4.1f%% %s평균: %s%5.2f개 %s표준편차: %s%5.2f개 %s%n",
+        messages.add(String.format("%s참여율:　%s%4.1f%% %s달성률:　%s%4.1f%% %s평균: %s%5.2f개 %s표준편차: %s%5.2f개 %s%n",
                 AllocationInspector.DELIMITER, TextFormat.BOLD, alivePercentage * 100,
                 AllocationInspector.DELIMITER, TextFormat.BOLD, succeededPercentage * 100,
                 AllocationInspector.DELIMITER, TextFormat.BOLD, average,
                 AllocationInspector.DELIMITER, TextFormat.BOLD, standardDeviation,
                 AllocationInspector.DELIMITER));
+
+        return messages;
     }
 
-    private void printResultsWithRank(final List<Result> results){
+    private Collection<String> printResultsWithRank(final List<Result> results){
         final List<Rank<Result>> ranks = new ArrayList<>();
         final int size = results.size();
 
@@ -132,7 +137,7 @@ public class AllocationInspector {
         }
         ranks.add(currentRank);
 
-        ranks.forEach(rank -> rank.getRankers(Comparator.comparing((Result result) -> result.getWriter().toString())).forEach(result -> Takoyaki.getInstance().getLogger().info(result.toString(String.format("#%02d ", rank.getRank() + 1)))));
+        return ranks.stream().flatMap((final Rank<Result> rank) -> rank.getRankers(Comparator.comparing((Result result) -> result.getWriter().toString())).stream().map(result -> result.toString(String.format("#%02d ", rank.getRank() + 1)))).collect(Collectors.toList());
     }
 
     class Rank<T>{

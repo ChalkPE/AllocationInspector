@@ -3,6 +3,7 @@ package pe.chalk.cafe;
 import org.json.JSONObject;
 import pe.chalk.takoyaki.Takoyaki;
 import pe.chalk.takoyaki.Target;
+import pe.chalk.takoyaki.utils.TextFormat;
 import pe.chalk.test.Staff;
 
 import java.io.FileInputStream;
@@ -15,6 +16,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.Date;
 import java.util.List;
 import java.util.Locale;
 import java.util.Properties;
@@ -30,6 +32,7 @@ public class Main {
     public static List<AllocationInspector> inspectors;
 
     public static boolean DELAY = true;
+    public static String html;
 
     public static final PrintStream realErr = System.err;
     public static final PrintStream fakeErr = new PrintStream(new OutputStream(){
@@ -61,6 +64,8 @@ public class Main {
             return;
         }
 
+        Main.html = new String(Files.readAllBytes(Paths.get("status.html")), StandardCharsets.UTF_8);
+
         JSONObject properties = new JSONObject(new String(Files.readAllBytes(propertiesPath), StandardCharsets.UTF_8));
         Main.inspectors.addAll(Takoyaki.<JSONObject>buildStream(properties.getJSONArray("targets")).map(AllocationInspector::new).collect(Collectors.toList()));
 
@@ -73,11 +78,28 @@ public class Main {
         while(true){
             Calendar calendar = Calendar.getInstance(Locale.KOREA);
 
-            Main.inspectors.forEach(inspector -> inspector.inspect(calendar.getTime())); Thread.sleep(1000);
-            //calendar.add(Calendar.DATE, -1); Main.inspectors.forEach(inspector -> inspector.inspect(calendar.getTime())); Thread.sleep(1000);
+                                               Main.inspect(calendar.getTime());
+            //calendar.add(Calendar.DATE, -1); Main.inspect(calendar.getTime());
         }
+    }
 
+    public static void inspect(Date date) throws InterruptedException {
+        Main.inspectors.stream().map(inspector -> inspector.inspect(date)).forEach(result -> {
+            String messages = String.join(String.format("%n"), result);
 
+            Takoyaki.getInstance().getLogger().info(messages);
+            Main.html(messages);
+        });
+        Thread.sleep(50);
+    }
+
+    public static void html(String messages){
+        try{
+            Files.write(Paths.get("html", "api", "status.html"),
+                    String.format(Main.html, TextFormat.replaceTo(TextFormat.Type.HTML, messages.replaceAll(" ", "&nbsp;"))).getBytes(StandardCharsets.UTF_8));
+        }catch(Exception e){
+            e.printStackTrace();
+        }
     }
 
     public static boolean delay(long millis){
