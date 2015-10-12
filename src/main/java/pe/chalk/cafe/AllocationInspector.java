@@ -11,14 +11,11 @@ import pe.chalk.takoyaki.utils.TextFormat;
 import java.io.IOException;
 import java.net.URL;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.Date;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.stream.Collectors;
-import java.util.stream.IntStream;
 
 /**
  * @author ChalkPE <chalkpe@gmail.com>
@@ -30,12 +27,12 @@ public class AllocationInspector {
     public static final SimpleDateFormat KOREAN_DATE_FORMAT = new SimpleDateFormat("yyyy년 MM월 dd일", Locale.KOREA);
 
     private int clubId;
-    private long allocatedArticles;
+    private int allocatedArticles;
     private List<Member> assignees;
 
     public AllocationInspector(JSONObject properties){
         this.clubId = properties.getInt("clubId");
-        this.allocatedArticles = properties.getLong("allocatedArticles");
+        this.allocatedArticles = properties.getInt("allocatedArticles");
         this.assignees = Takoyaki.<String>buildStream(properties.getJSONArray("assignees")).map(assignee -> {
             String[] a = assignee.split(":");
             return new Member(this.getTarget().getClubId(), a[0], a[1]);
@@ -46,7 +43,7 @@ public class AllocationInspector {
         return clubId;
     }
 
-    public long getAllocatedArticles(){
+    public int getAllocatedArticles(){
         return this.allocatedArticles;
     }
 
@@ -86,45 +83,22 @@ public class AllocationInspector {
         int totalAssignees = this.getAssignees().size();
 
         Takoyaki.getInstance().getLogger().info(TextFormat.BOLD.toString() + TextFormat.BLUE + "[" + AllocationInspector.KOREAN_DATE_FORMAT.format(date) + "]");
+        List<Result> results = this.getAssignees().stream().map(assignee -> new Result(assignee, this.getArticles(assignee, date), this.getAllocatedArticles())).sorted().collect(Collectors.toList());
 
-        Comparator<Map.Entry<Member, List<MemberArticle>>> comparator = Comparator.comparing(entry -> -entry.getValue().size());
-        comparator = comparator.thenComparing(entry -> entry.getValue().size() <= 0 ? Integer.MAX_VALUE : entry.getValue().get(entry.getValue().size() >= this.getAllocatedArticles() ? (int) this.getAllocatedArticles() - 1 : 0).getId());
-        comparator = comparator.thenComparing(entry -> entry.getKey().toString());
+        long aliveAssignees     = results.stream().filter(Result::isAlive).count();
+        long succeededAssignees = results.stream().filter(Result::isSucceeded).count();
+        long totalArticles      = results.stream().mapToLong(Result::size).sum();
 
-        final Counter aliveAssigneesCounter = new Counter(), succeededAssigneesCounter = new Counter(), totalArticlesCounter = new Counter();
-        List<String> messages = new ArrayList<>(totalAssignees);
-
-        Map<Integer, Long> counted = this.getAssignees().stream().collect(Collectors.toMap(assignee -> assignee, assignee -> this.getArticles(assignee, date))).entrySet().stream().sorted(comparator).map(entry -> {
-            int count = entry.getValue().size();
-            boolean done = count >= this.getAllocatedArticles();
-
-            String last = count <= 0 ? "     " : (done ? entry.getValue().get((int) this.getAllocatedArticles() - 1) : entry.getValue().get(0)).getUploadDateAndTime().substring(12);
-            TextFormat format = count <= 0 ? TextFormat.DARK_RED : (done ? (count == this.getAllocatedArticles() ? TextFormat.GREEN : TextFormat.AQUA) : (count >= this.getAllocatedArticles() / 2.0 ? TextFormat.YELLOW : TextFormat.RED));
-
-            messages.add(String.format("%s%s#%%02d %2d/%d %s%s%s %s %s",
-                    format, TextFormat.BOLD, count, this.getAllocatedArticles(), done ? "SUCCESS" : "FAILURE", TextFormat.RESET, format, last, entry.getKey()));
-
-            totalArticlesCounter.add(count);
-            if(count > 0) aliveAssigneesCounter.increase();
-            if(done) succeededAssigneesCounter.increase();
-
-            return count;
-        }).collect(Collectors.groupingBy(num -> num, Collectors.counting()));
-
-        IntStream.range(0, messages.size()).forEach(index -> Takoyaki.getInstance().getLogger().info(String.format(messages.get(index), index + 1)));
-
-        long aliveAssignees = aliveAssigneesCounter.getValue();
-        long succeededAssignees = succeededAssigneesCounter.getValue();
-        long totalArticles = totalArticlesCounter.getValue();
-
-        double average = totalArticles * 1.0 / totalAssignees;
-        double alivePercentage = aliveAssignees * 1.0 / totalAssignees;
+        double average             =      totalArticles * 1.0 / totalAssignees;
+        double alivePercentage     =     aliveAssignees * 1.0 / totalAssignees;
         double succeededPercentage = succeededAssignees * 1.0 / totalAssignees;
-        double standardDeviation = Math.sqrt(counted.entrySet().stream().mapToDouble(entry -> Math.pow(entry.getKey() - average, 2) * entry.getValue()).sum() / totalAssignees);
+
+        Map<Integer, Long> map = results.stream().collect(Collectors.groupingBy(Result::size, Collectors.counting()));
+        double standardDeviation = Math.sqrt(map.entrySet().stream().mapToDouble(entry -> Math.pow(entry.getKey() - average, 2) * entry.getValue()).sum() / totalAssignees);
+
+        //TODO: Print results with rank
 
         time = System.currentTimeMillis() - time;
-
-
 
         String delimiter = TextFormat.RESET.toString() + TextFormat.DARK_BLUE + "| " + TextFormat.BLUE;
 
