@@ -2,6 +2,7 @@ package pe.chalk.cafe;
 
 import org.json.JSONObject;
 import pe.chalk.takoyaki.Takoyaki;
+import pe.chalk.takoyaki.Target;
 import pe.chalk.test.Staff;
 
 import java.io.FileInputStream;
@@ -61,6 +62,11 @@ public class Main {
 
         JSONObject properties = new JSONObject(new String(Files.readAllBytes(propertiesPath), StandardCharsets.UTF_8));
         Main.inspectors.addAll(Takoyaki.<JSONObject>buildStream(properties.getJSONArray("targets")).map(AllocationInspector::new).collect(Collectors.toList()));
+
+        Main.inspectors.forEach(inspector -> {
+            Target target = Takoyaki.getInstance().getTarget(inspector.getClubId());
+            Takoyaki.getInstance().getLogger().info("게시글을 검사합니다: 대상자 " + inspector.getAssignees().size() + "명: " + target.getName() + " (ID: " + target.getClubId() + ")");
+        });
 
         Calendar calendar = Calendar.getInstance(Locale.KOREA);
         Date today = calendar.getTime();

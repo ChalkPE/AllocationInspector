@@ -11,12 +11,14 @@ import pe.chalk.takoyaki.utils.TextFormat;
 import java.io.IOException;
 import java.net.URL;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.Date;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 /**
  * @author ChalkPE <chalkpe@gmail.com>
@@ -33,10 +35,6 @@ public class AllocationInspector {
 
     public AllocationInspector(JSONObject properties){
         this.clubId = properties.getInt("clubId");
-
-        Target target = Takoyaki.getInstance().getTarget(this.getClubId());
-        Takoyaki.getInstance().getLogger().info("게시글을 검사합니다: " + target.getName() + " (ID: " + target.getClubId() + ")");
-
         this.allocatedArticles = properties.getLong("allocatedArticles");
         this.assignees = Takoyaki.<String>buildStream(properties.getJSONArray("assignees")).map(assignee -> {
             String[] a = assignee.split(":");
@@ -61,7 +59,7 @@ public class AllocationInspector {
     }
 
     public Document getRecentMemberArticles(Member member) throws IOException {
-        try{Thread.sleep(100);}catch(InterruptedException e){e.printStackTrace();}
+        try{Thread.sleep(50);}catch(InterruptedException e){e.printStackTrace();}
 
         URL recentMemberArticlesUrl = new URL(String.format(AllocationInspector.MEMBER_RECENT_ARTICLES_URL, this.getClubId(), this.getClubId(), member.getId()));
         return Jsoup.parse(Main.staff.getPage(recentMemberArticlesUrl).getWebResponse().getContentAsString());
@@ -84,7 +82,8 @@ public class AllocationInspector {
     }
 
     public void inspect(Date date){
-        long start = System.currentTimeMillis();
+        long time = System.currentTimeMillis();
+        int totalAssignees = this.getAssignees().size();
 
         Takoyaki.getInstance().getLogger().info(TextFormat.BOLD.toString() + TextFormat.BLUE + "[" + AllocationInspector.KOREAN_DATE_FORMAT.format(date) + "]");
 
@@ -93,6 +92,7 @@ public class AllocationInspector {
         comparator = comparator.thenComparing(entry -> entry.getKey().toString());
 
         final Counter aliveAssigneesCounter = new Counter(), succeededAssigneesCounter = new Counter(), totalArticlesCounter = new Counter();
+        List<String> messages = new ArrayList<>(totalAssignees);
 
         Map<Integer, Long> counted = this.getAssignees().stream().collect(Collectors.toMap(assignee -> assignee, assignee -> this.getArticles(assignee, date))).entrySet().stream().sorted(comparator).map(entry -> {
             int count = entry.getValue().size();
@@ -101,8 +101,8 @@ public class AllocationInspector {
             String last = count <= 0 ? "     " : (done ? entry.getValue().get((int) this.getAllocatedArticles() - 1) : entry.getValue().get(0)).getUploadDateAndTime().substring(12);
             TextFormat format = count <= 0 ? TextFormat.DARK_RED : (done ? (count == this.getAllocatedArticles() ? TextFormat.GREEN : TextFormat.AQUA) : (count >= this.getAllocatedArticles() / 2.0 ? TextFormat.YELLOW : TextFormat.RED));
 
-            Takoyaki.getInstance().getLogger().info(String.format("%s%s%2d/%d %s%s%s %s %s", format, TextFormat.BOLD,
-                    count, this.getAllocatedArticles(), done ? "SUCCESS" : "FAILURE", TextFormat.RESET, format, last, entry.getKey()));
+            messages.add(String.format("%s%s#%%02d %2d/%d %s%s%s %s %s",
+                    format, TextFormat.BOLD, count, this.getAllocatedArticles(), done ? "SUCCESS" : "FAILURE", TextFormat.RESET, format, last, entry.getKey()));
 
             totalArticlesCounter.add(count);
             if(count > 0) aliveAssigneesCounter.increase();
@@ -111,30 +111,36 @@ public class AllocationInspector {
             return count;
         }).collect(Collectors.groupingBy(num -> num, Collectors.counting()));
 
-        int totalAssignees = this.getAssignees().size();
+        IntStream.range(0, messages.size()).forEach(index -> Takoyaki.getInstance().getLogger().info(String.format(messages.get(index), index + 1)));
+
         long aliveAssignees = aliveAssigneesCounter.getValue();
         long succeededAssignees = succeededAssigneesCounter.getValue();
         long totalArticles = totalArticlesCounter.getValue();
 
-        float average = totalArticles * 1f / totalAssignees;
-        float alivePercentage = aliveAssignees * 1f / totalAssignees;
-        float succeededPercentage = succeededAssignees * 1f / totalAssignees;
+        double average = totalArticles * 1.0 / totalAssignees;
+        double alivePercentage = aliveAssignees * 1.0 / totalAssignees;
+        double succeededPercentage = succeededAssignees * 1.0 / totalAssignees;
+        double standardDeviation = Math.sqrt(counted.entrySet().stream().mapToDouble(entry -> Math.pow(entry.getKey() - average, 2) * entry.getValue()).sum() / totalAssignees);
 
-        double stdev = Math.sqrt(counted.entrySet().stream().mapToDouble(entry -> Math.pow(entry.getKey() - average, 2) * entry.getValue()).sum() / totalAssignees);
+        time = System.currentTimeMillis() - time;
+
+
 
         String delimiter = TextFormat.RESET.toString() + TextFormat.DARK_BLUE + "| " + TextFormat.BLUE;
 
-        Takoyaki.getInstance().getLogger().info(String.format("%s대상자: %s%4d명 %s달성자: %s%4d명 %s총 게시글 수: %s%4d개 %s소요시간: %s%5.2f초 %s",
-                delimiter, TextFormat.BOLD, totalAssignees,
+        Takoyaki.getInstance().getLogger().info(String.format("%s참여자: %s%4d명 %s달성자: %s%4d명 %s총 게시글 수: %s%4d개 %s소요시간: %s%5.2f초 %s",
+                delimiter, TextFormat.BOLD, aliveAssignees,
                 delimiter, TextFormat.BOLD, succeededAssignees,
                 delimiter, TextFormat.BOLD, totalArticles,
-                delimiter, TextFormat.BOLD, (System.currentTimeMillis() - start) / 1000f, delimiter));
+                delimiter, TextFormat.BOLD, time / 1000.0,
+                delimiter));
 
         Takoyaki.getInstance().getLogger().info(String.format("%s참여율:　%s%4.1f%% %s달성률:　%s%4.1f%% %s1인당 평균:　%s%5.2f개 %s표준편차: %s%5.2f개 %s%n",
                 delimiter, TextFormat.BOLD, alivePercentage * 100,
                 delimiter, TextFormat.BOLD, succeededPercentage * 100,
                 delimiter, TextFormat.BOLD, average,
-                delimiter, TextFormat.BOLD, stdev, delimiter));
+                delimiter, TextFormat.BOLD, standardDeviation,
+                delimiter));
     }
 
     @SuppressWarnings("unused")

@@ -72,6 +72,8 @@ public class MemberArticle extends SimpleArticle {
     }
 
     public void update(){
+        try{Thread.sleep(50);}catch(InterruptedException e){e.printStackTrace();}
+
         try{
             Document document = Jsoup.parse(Main.staff.getPage(new URL("http://cafe.naver.com/ArticleRead.nhn?clubid=23683173&articleid=" + this.getId())).getWebResponse().getContentAsString());
 
