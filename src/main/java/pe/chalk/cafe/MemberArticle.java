@@ -34,17 +34,12 @@ public class MemberArticle extends SimpleArticle {
 
         this.uploadDate = uploadDate;
         this.writer = writer;
-
-        Takoyaki.getInstance().getLogger().debug("NEW:   " + this.toString());
     }
 
     public static MemberArticle fromElement(Element element, int targetId, Member writer){
         int id = Integer.parseInt(element.select("span.m-tcol-c.list-count").first().text());
         if(MemberArticle.cache.containsKey(id)){
-            MemberArticle article = MemberArticle.cache.get(id);
-            Takoyaki.getInstance().getLogger().debug("CACHE: " + article.toString());
-
-            return article;
+            return MemberArticle.cache.get(id);
         }
 
         String title = element.select("td.board-list > span a.m-tcol-c").first().text();
@@ -87,6 +82,7 @@ public class MemberArticle extends SimpleArticle {
 
     public void update(){
         Main.delay(500);
+        Takoyaki.getInstance().getLogger().debug("UPDATE: " + this.toString());
 
         try{
             Document document = Jsoup.parse(Main.staff.getPage(new URL("http://cafe.naver.com/ArticleRead.nhn?clubid=23683173&articleid=" + this.getId())).getWebResponse().getContentAsString());

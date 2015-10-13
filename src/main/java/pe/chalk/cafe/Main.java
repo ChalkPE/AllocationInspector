@@ -57,12 +57,13 @@ public class Main {
 
             System.setErr(Main.realErr);
         }catch(IllegalStateException e){
-            Takoyaki.getInstance().getLogger().critical("네이버에 로그인할 수 없습니다!");
+            Takoyaki.getInstance().getLogger().error("네이버에 로그인할 수 없습니다!");
             return;
         }
 
         Path propertiesPath = Paths.get("AllocationInspector.json");
         if(Files.notExists(propertiesPath)){
+            Takoyaki.getInstance().getLogger().error("프로퍼티 파일을 찾을 수 없습니다: " + propertiesPath);
             return;
         }
 
