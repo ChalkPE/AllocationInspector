@@ -75,7 +75,13 @@ public class Result implements Comparable<Result>, Comparator<Result> {
 
     public Optional<String> getMajorArticleUploadDateAndTime(){
         Optional<MemberArticle> majorArticle = this.getMajorArticle();
-        return Optional.ofNullable(majorArticle.isPresent() ? majorArticle.get().getUploadDateAndTime().substring(12) : null);
+        if(!majorArticle.isPresent()) return Optional.empty();
+
+        String uploadDateAndTime = majorArticle.get().getUploadDateAndTime();
+        if(uploadDateAndTime.length() > 5){
+            uploadDateAndTime = uploadDateAndTime.substring(uploadDateAndTime.length() - 5);
+        }
+        return Optional.of(uploadDateAndTime);
     }
 
     public TextFormat getColor(){
@@ -102,8 +108,8 @@ public class Result implements Comparable<Result>, Comparator<Result> {
     }
 
     public String toString(String prefix){
-        return String.format("%s%s%s%2d/%-2d %s %s%s%s %s",
+        return String.format("%s%s%s%2d/%-2d %s %s%s%5s %s",
                 TextFormat.BOLD, this.getColor(), prefix, this.size(), this.getAllocatedArticles(), this.isSucceeded() ? "SUCCESS" : "FAILURE",
-                TextFormat.RESET, this.getColor(), this.getMajorArticleUploadDateAndTime().orElse("     "), this.getWriter());
+                TextFormat.RESET, this.getColor(), this.getMajorArticleUploadDateAndTime().orElse(""), this.getWriter());
     }
 }
