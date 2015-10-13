@@ -62,7 +62,7 @@ public class AllocationInspector {
 
     public List<MemberArticle> getRecentMemberArticles(Member member, int page) throws IOException {
         Main.delay(1000);
-        Takoyaki.getInstance().getLogger().debug(String.format("PARSE:  #%02d - %s", page, member));
+        Takoyaki.getInstance().getLogger().info(String.format("PARSE:  #%02d: %s", page, member));
 
         URL url = new URL(String.format(AllocationInspector.MEMBER_RECENT_ARTICLES_URL, this.getClubId(), this.getClubId(), member.getId(), page));
         return Jsoup.parse(Main.staff.getPage(url).getWebResponse().getContentAsString())

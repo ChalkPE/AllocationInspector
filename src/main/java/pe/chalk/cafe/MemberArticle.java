@@ -82,7 +82,7 @@ public class MemberArticle extends SimpleArticle {
 
     public void update(){
         Main.delay(500);
-        Takoyaki.getInstance().getLogger().debug("UPDATE: " + this.toString());
+        Takoyaki.getInstance().getLogger().info("UPDATE: " + this.toString());
 
         try{
             Document document = Jsoup.parse(Main.staff.getPage(new URL("http://cafe.naver.com/ArticleRead.nhn?clubid=23683173&articleid=" + this.getId())).getWebResponse().getContentAsString());
