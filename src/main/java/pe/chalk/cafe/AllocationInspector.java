@@ -14,6 +14,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -25,11 +26,13 @@ import java.util.stream.Collectors;
  */
 public class AllocationInspector {
     public static final String MEMBER_RECENT_ARTICLES_URL = "http://cafe.naver.com/CafeMemberNetworkArticleList.nhn?clubid=%s&search.clubid=%s&search.writerid=%s&search.page=%d";
+    public static final String DELIMITER = TextFormat.RESET.toString() + TextFormat.DARK_BLUE + "| " + TextFormat.BLUE;
+
     public static final SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("yyyy.MM.dd.", Locale.KOREA);
     public static final SimpleDateFormat KOREAN_DATE_FORMAT = new SimpleDateFormat("yyyy년 MM월 dd일", Locale.KOREA);
     public static final SimpleDateFormat KOREAN_FULL_DATE_FORMAT = new SimpleDateFormat("yyyy년 MM월 dd일 HH시 mm분 ss초", Locale.KOREA);
 
-    public static final String DELIMITER = TextFormat.RESET.toString() + TextFormat.DARK_BLUE + "| " + TextFormat.BLUE;
+    public static final Map<String, List<MemberArticle>> cache = new HashMap<>();
 
     private int clubId;
     private int allocatedArticles;
@@ -61,15 +64,23 @@ public class AllocationInspector {
     }
 
     public List<MemberArticle> getRecentMemberArticles(Member member, int page) throws IOException {
+        String key = member.getId() + "#" + page;
+        if(AllocationInspector.cache.containsKey(key)){
+            return AllocationInspector.cache.get(key);
+        }
+
         Main.delay(1000);
         Takoyaki.getInstance().getLogger().info(String.format("PARSE:  #%02d: %s", page, member));
 
         URL url = new URL(String.format(AllocationInspector.MEMBER_RECENT_ARTICLES_URL, this.getClubId(), this.getClubId(), member.getId(), page));
-        return Jsoup.parse(Main.staff.getPage(url).getWebResponse().getContentAsString())
+        List<MemberArticle> articles = Jsoup.parse(Main.staff.getPage(url).getWebResponse().getContentAsString())
                 .select("tr[align=center]:not([class])").stream()
                 .map(element -> MemberArticle.fromElement(element, this.getClubId(), member))
                 .sorted((a, b) -> a.getId() - b.getId())
                 .collect(Collectors.toList());
+
+        AllocationInspector.cache.put(key, articles);
+        return articles;
     }
 
     public List<MemberArticle> getArticles(Member member, Date date){

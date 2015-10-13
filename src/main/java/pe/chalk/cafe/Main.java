@@ -8,18 +8,18 @@ import pe.chalk.test.Staff;
 
 import java.io.FileInputStream;
 import java.io.IOException;
-import java.io.OutputStream;
-import java.io.PrintStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Calendar;
+import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 import java.util.Locale;
 import java.util.Properties;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 /**
@@ -32,16 +32,10 @@ public class Main {
     public static List<AllocationInspector> inspectors;
 
     public static boolean DELAY = true;
+
     public static String html;
     public static Path htmlOutput;
-
-    public static final PrintStream realErr = System.err;
-    public static final PrintStream fakeErr = new PrintStream(new OutputStream(){
-        @Override
-        public void write(int b) throws IOException{
-            //DO NOTHING
-        }
-    });
+    public static int days;
 
     public static void main(String[] args) throws IOException, InterruptedException {
         Main.takoyaki = new Takoyaki();
@@ -50,12 +44,10 @@ public class Main {
             Properties accountProperties = new Properties(); accountProperties.load(new FileInputStream("account.properties"));
             Takoyaki.getInstance().getLogger().info("네이버에 로그인합니다: " + accountProperties.getProperty("user.id"));
 
-            System.setErr(Main.fakeErr);
-
             Main.staff = new Staff(null, accountProperties);
             Main.staff.getOptions().setJavaScriptEnabled(false);
 
-            System.setErr(Main.realErr);
+            Runtime.getRuntime().addShutdownHook(new Thread(Main.staff::close));
         }catch(IllegalStateException e){
             Takoyaki.getInstance().getLogger().error("네이버에 로그인할 수 없습니다!");
             return;
@@ -68,6 +60,7 @@ public class Main {
         }
 
         JSONObject properties = new JSONObject(new String(Files.readAllBytes(propertiesPath), StandardCharsets.UTF_8));
+        Main.days = properties.getInt("days");
 
         try{
             Main.html = new String(Files.readAllBytes(Paths.get(properties.getString("htmlInput"))), StandardCharsets.UTF_8);
@@ -84,7 +77,7 @@ public class Main {
 
         new Thread(() -> {
             try{
-                Thread.sleep(1000 * 60 * 30); //30m
+                Thread.sleep(1000 * 60 * 60 * 2); //2h
 
                 MemberArticle.cache.clear();
                 Takoyaki.getInstance().getLogger().notice("CACHE CLEARED!");
@@ -96,21 +89,27 @@ public class Main {
         //noinspection InfiniteLoopStatement
         while(true){
             try{
-                Calendar calendar = Calendar.getInstance(Locale.KOREA);
-                Date today = calendar.getTime();
+                final Calendar calendar = Calendar.getInstance(Locale.KOREA);
+                calendar.add(Calendar.DATE, 1 - Main.days);
 
-                calendar.add(Calendar.DATE, -1);
-                Date yesterday = calendar.getTime();
+                Main.inspect(IntStream.range(0, Main.days).mapToObj(i -> {
+                    Date date = calendar.getTime();
+                    calendar.add(Calendar.DATE, 1);
 
-                Main.inspect(today, yesterday);
+                    return date;
+                }));
             }catch(Exception e){
                 e.printStackTrace();
             }
         }
     }
 
-    public static void inspect(Date... dates) throws InterruptedException {
-        String result = String.join(String.format("%n"), Stream.of(dates).flatMap(date -> Main.inspectors.stream().map(inspector -> inspector.inspect(date))).collect(Collectors.toList()));
+    public static void inspect(Stream<Date> dates) throws InterruptedException {
+        List<String> messages = dates.flatMap(date -> Main.inspectors.stream().map(inspector -> inspector.inspect(date))).collect(Collectors.toList());
+        Collections.reverse(messages);
+
+        String result = String.join(String.format("%n"), messages);
+        AllocationInspector.cache.clear();
 
         Takoyaki.getInstance().getLogger().info(result);
         Main.html(result);
