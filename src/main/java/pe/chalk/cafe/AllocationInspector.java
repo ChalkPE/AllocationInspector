@@ -11,7 +11,6 @@ import java.io.IOException;
 import java.net.URL;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.Date;
@@ -27,7 +26,8 @@ import java.util.stream.Collectors;
 public class AllocationInspector {
     public static final String MEMBER_RECENT_ARTICLES_URL = "http://cafe.naver.com/CafeMemberNetworkArticleList.nhn?clubid=%s&search.clubid=%s&search.writerid=%s&search.page=%d";
     public static final SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("yyyy.MM.dd.", Locale.KOREA);
-    public static final SimpleDateFormat KOREAN_DATE_FORMAT = new SimpleDateFormat("yyyy년 MM월 dd일 HH시 mm분", Locale.KOREA);
+    public static final SimpleDateFormat KOREAN_DATE_FORMAT = new SimpleDateFormat("yyyy년 MM월 dd일", Locale.KOREA);
+    public static final SimpleDateFormat KOREAN_FULL_DATE_FORMAT = new SimpleDateFormat("yyyy년 MM월 dd일 HH시 mm분 ss초", Locale.KOREA);
 
     public static final String DELIMITER = TextFormat.RESET.toString() + TextFormat.DARK_BLUE + "| " + TextFormat.BLUE;
 
@@ -61,12 +61,13 @@ public class AllocationInspector {
     }
 
     public List<MemberArticle> getRecentMemberArticles(Member member, int page) throws IOException {
-        Main.delay(750);
+        Main.delay(1000);
         URL url = new URL(String.format(AllocationInspector.MEMBER_RECENT_ARTICLES_URL, this.getClubId(), this.getClubId(), member.getId(), page));
 
         return Jsoup.parse(Main.staff.getPage(url).getWebResponse().getContentAsString())
                 .select("tr[align=center]:not([class])").stream()
                 .map(element -> MemberArticle.fromElement(element, this.getClubId(), member))
+                .sorted((a, b) -> a.getId() - b.getId())
                 .collect(Collectors.toList());
     }
 
@@ -78,13 +79,12 @@ public class AllocationInspector {
         final String today = AllocationInspector.DATE_FORMAT.format(date);
         try{
             List<MemberArticle> articles = this.getRecentMemberArticles(member, page);
-            if(articles.stream().map(MemberArticle::getUploadDate).distinct().count() == 1){
+            if(articles.get(0).getUploadDate().compareTo(today) >= 0 || articles.stream().map(MemberArticle::getUploadDate).distinct().count() == 1){
                 articles.addAll(this.getArticles(member, date, page + 1));
             }
 
             return articles.stream().filter(article -> article.getUploadDate().equals(today))
                     .filter(article -> article.getMenuId() != 30)
-                    .sorted((a, b) -> a.getId() - b.getId())
                     .collect(Collectors.toList());
         }catch(IOException e){
             e.printStackTrace();
@@ -92,9 +92,11 @@ public class AllocationInspector {
         }
     }
 
-    public Collection<String> inspect(Date date){
-        Collection<String> messages = new ArrayList<>();
-        messages.add(String.format("%s%s[%s]", TextFormat.BOLD, TextFormat.BLUE, AllocationInspector.KOREAN_DATE_FORMAT.format(date)));
+    public String inspect(Date date){
+        List<String> messages = new ArrayList<>();
+        messages.add(String.format("%s%s[%s]   %s%s검사시각: %s%n",
+                TextFormat.BOLD, TextFormat.BLUE, AllocationInspector.KOREAN_DATE_FORMAT.format(date),
+                TextFormat.RESET, TextFormat.GRAY, AllocationInspector.KOREAN_FULL_DATE_FORMAT.format(new Date())));
 
         final long start = System.currentTimeMillis();
 
@@ -114,24 +116,24 @@ public class AllocationInspector {
         final Map<Integer, Long> map = results.stream().collect(Collectors.groupingBy(Result::size, Collectors.counting()));
         final double standardDeviation = Math.sqrt(map.entrySet().stream().mapToDouble(entry -> Math.pow(entry.getKey() - average, 2) * entry.getValue()).sum() / totalAssignees);
 
-        messages.add(String.format("%s참여자: %s%4d명 %s달성자: %s%4d명 %s총합: %s%5d개 %s소요시간: %s%5.2f초 %s",
+        messages.add(String.format("%s참여자: %s%4d명 %s달성자: %s%4d명 %s총합: %s%5d개 %s소요시간: %s%6.2f초 %s",
                 AllocationInspector.DELIMITER, TextFormat.BOLD, aliveAssignees,
                 AllocationInspector.DELIMITER, TextFormat.BOLD, succeededAssignees,
                 AllocationInspector.DELIMITER, TextFormat.BOLD, totalArticles,
                 AllocationInspector.DELIMITER, TextFormat.BOLD, (System.currentTimeMillis() - start) / 1000.0,
                 AllocationInspector.DELIMITER));
 
-        messages.add(String.format("%s참여율:　%s%4.1f%% %s달성률:　%s%4.1f%% %s평균: %s%5.2f개 %s표준편차: %s%5.2f개 %s%n",
+        messages.add(String.format("%s참여율:　%s%4.1f%% %s달성률:　%s%4.1f%% %s평균: %s%5.2f개 %s표준편차: %s%6.2f개 %s%n%n",
                 AllocationInspector.DELIMITER, TextFormat.BOLD, alivePercentage * 100,
                 AllocationInspector.DELIMITER, TextFormat.BOLD, succeededPercentage * 100,
                 AllocationInspector.DELIMITER, TextFormat.BOLD, average,
                 AllocationInspector.DELIMITER, TextFormat.BOLD, standardDeviation,
                 AllocationInspector.DELIMITER));
 
-        return messages;
+        return String.join(String.format("%n"), messages);
     }
 
-    private Collection<String> printResultsWithRank(final List<Result> results){
+    private List<String> printResultsWithRank(final List<Result> results){
         final List<Rank<Result>> ranks = new ArrayList<>();
         final int size = results.size();
 

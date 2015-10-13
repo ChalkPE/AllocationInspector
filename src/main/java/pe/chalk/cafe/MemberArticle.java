@@ -10,6 +10,8 @@ import pe.chalk.takoyaki.model.SimpleArticle;
 import pe.chalk.takoyaki.utils.TextFormat;
 
 import java.net.URL;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -19,6 +21,7 @@ import java.util.regex.Pattern;
  */
 public class MemberArticle extends SimpleArticle {
     public static final Pattern MENU_ID_PATTERN = Pattern.compile("&search\\.menuid=(\\d+)&");
+    public static final Map<Integer, MemberArticle> cache = new HashMap<>();
 
     private String uploadDate;
     private String uploadDateAndTime = null;
@@ -27,15 +30,23 @@ public class MemberArticle extends SimpleArticle {
 
     public MemberArticle(int targetId, int id, String title, int commentCount, String uploadDate, Member writer){
         super(targetId, id, title, commentCount);
+        MemberArticle.cache.put(this.getId(), this);
 
         this.uploadDate = uploadDate;
         this.writer = writer;
 
-        Takoyaki.getInstance().getLogger().debug(this.toString());
+        Takoyaki.getInstance().getLogger().debug("NEW:   " + this.toString());
     }
 
     public static MemberArticle fromElement(Element element, int targetId, Member writer){
         int id = Integer.parseInt(element.select("span.m-tcol-c.list-count").first().text());
+        if(MemberArticle.cache.containsKey(id)){
+            MemberArticle article = MemberArticle.cache.get(id);
+            Takoyaki.getInstance().getLogger().debug("CACHE: " + article.toString());
+
+            return article;
+        }
+
         String title = element.select("td.board-list > span a.m-tcol-c").first().text();
         String uploadDate = element.select("td.view-count.m-tcol-c").first().text();
 
@@ -75,7 +86,7 @@ public class MemberArticle extends SimpleArticle {
     }
 
     public void update(){
-        try{Thread.sleep(50);}catch(InterruptedException e){e.printStackTrace();}
+        Main.delay(500);
 
         try{
             Document document = Jsoup.parse(Main.staff.getPage(new URL("http://cafe.naver.com/ArticleRead.nhn?clubid=23683173&articleid=" + this.getId())).getWebResponse().getContentAsString());
