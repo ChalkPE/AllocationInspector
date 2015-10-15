@@ -79,7 +79,7 @@ public class AllocationInspector {
                 .sorted((a, b) -> a.getId() - b.getId())
                 .collect(Collectors.toList());
 
-        AllocationInspector.cache.put(key, articles);
+        if(articles.size() > 0) AllocationInspector.cache.put(key, articles);
         return articles;
     }
 
@@ -91,16 +91,17 @@ public class AllocationInspector {
         final String today = AllocationInspector.DATE_FORMAT.format(date);
         try{
             List<MemberArticle> articles = this.getRecentMemberArticles(member, page);
-            if(articles.get(0).getUploadDate().compareTo(today) >= 0 || articles.stream().map(MemberArticle::getUploadDate).distinct().count() == 1){
+            if((articles.size() > 0 && articles.get(0).getUploadDate().compareTo(today) >= 0) || articles.stream().map(MemberArticle::getUploadDate).distinct().count() == 1){
                 articles.addAll(this.getArticles(member, date, page + 1));
             }
 
-            return articles.stream().filter(article -> article.getUploadDate().equals(today))
+            return articles.stream()
+                    .filter(article -> article.getUploadDate().equals(today))
                     .filter(article -> article.getMenuId() != 30)
                     .collect(Collectors.toList());
-        }catch(IOException e){
+        }catch(Exception e){
             e.printStackTrace();
-            return null;
+            return new ArrayList<>();
         }
     }
 
