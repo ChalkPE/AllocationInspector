@@ -87,7 +87,7 @@ public class MemberArticle extends SimpleArticle {
         try{
             Document document = Jsoup.parse(Main.staff.getPage(new URL("http://cafe.naver.com/ArticleRead.nhn?clubid=23683173&articleid=" + this.getId())).getWebResponse().getContentAsString());
 
-            Matcher menuIdMatcher = MemberArticle.MENU_ID_PATTERN.matcher(document.select("div.tit-box div.fl td.m-tcol-c a").attr("href"));
+            Matcher menuIdMatcher = MemberArticle.MENU_ID_PATTERN.matcher(document.select("div.tit-box div.fl a.m-tcol-c").attr("href"));
             if(menuIdMatcher.find()){
                 this.menuId = Integer.parseInt(menuIdMatcher.group(1));
             }
