@@ -111,7 +111,7 @@ public class Main {
         List<String> messages = dates.flatMap(date -> Main.inspectors.stream().map(inspector -> inspector.inspect(date))).collect(Collectors.toList());
         Collections.reverse(messages);
 
-        String result = String.join(String.format("%n"), messages);
+        String result = String.join(String.format("%n%n"), messages);
         AllocationInspector.cache.clear();
 
         Takoyaki.getInstance().getLogger().info(result);
