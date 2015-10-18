@@ -10,7 +10,11 @@ import pe.chalk.takoyaki.model.SimpleArticle;
 import pe.chalk.takoyaki.utils.TextFormat;
 
 import java.net.URL;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.HashMap;
+import java.util.Locale;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -20,11 +24,12 @@ import java.util.regex.Pattern;
  * @since 2015-10-10
  */
 public class MemberArticle extends SimpleArticle {
+    public static final SimpleDateFormat FORMAT = new SimpleDateFormat("yyyy.MM.dd. HH:mm", Locale.KOREA);
     public static final Pattern MENU_ID_PATTERN = Pattern.compile("&search\\.menuid=(\\d+)&");
     public static final Map<Integer, MemberArticle> cache = new HashMap<>();
 
     private String uploadDate;
-    private String uploadDateAndTime = null;
+    private String uploadTime;
     private Member writer;
     private int menuId = 0;
 
@@ -55,16 +60,32 @@ public class MemberArticle extends SimpleArticle {
         return this.uploadDate;
     }
 
+    public String getUploadTime(){
+        return this.getUploadTime(true);
+    }
+
+    public String getUploadTime(boolean update){
+        if((this.uploadTime == null || this.uploadTime.equals("")) && update){
+            this.update();
+        }
+        return this.uploadTime;
+    }
+
     public String getUploadDateAndTime(){
         return this.getUploadDateAndTime(true);
     }
 
     public String getUploadDateAndTime(boolean update){
-        if(this.uploadDateAndTime == null){
-            if(!update) return this.getUploadDate();
-            this.update();
+        return this.getUploadDate() + " " + this.getUploadTime(update);
+    }
+
+    public Date getDate(){
+        try{
+            return MemberArticle.FORMAT.parse(this.getUploadDateAndTime());
+        }catch(ParseException e){
+            e.printStackTrace();
         }
-        return this.uploadDateAndTime;
+        return null;
     }
 
     public Member getWriter(){
@@ -87,12 +108,16 @@ public class MemberArticle extends SimpleArticle {
         try{
             Document document = Jsoup.parse(Main.staff.getPage(new URL("http://cafe.naver.com/ArticleRead.nhn?clubid=23683173&articleid=" + this.getId())).getWebResponse().getContentAsString());
 
-            Matcher menuIdMatcher = MemberArticle.MENU_ID_PATTERN.matcher(document.select("div.tit-box div.fl a.m-tcol-c").attr("href"));
+            Matcher menuIdMatcher = MemberArticle.MENU_ID_PATTERN.matcher(document.select("div.tit-box div.fl a.m-tcol-c").first().attr("href"));
             if(menuIdMatcher.find()){
                 this.menuId = Integer.parseInt(menuIdMatcher.group(1));
             }
 
-            this.uploadDateAndTime = document.select("div.tit-box div.fr td.m-tcol-c.date").text();
+            String uploadTime = document.select("div.tit-box div.fr td.m-tcol-c.date").first().text();
+            if(uploadTime.length() > 5){
+                uploadTime = uploadTime.substring(uploadTime.length() - 5);
+            }
+            this.uploadTime = uploadTime;
         }catch(Exception e){
             e.printStackTrace();
         }

@@ -11,6 +11,7 @@ import java.io.IOException;
 import java.net.URL;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.Date;
@@ -69,7 +70,7 @@ public class AllocationInspector {
             return AllocationInspector.cache.get(key);
         }
 
-        Main.delay(1000);
+        Main.delay(500);
         Takoyaki.getInstance().getLogger().info(String.format("PARSE:  #%02d: %s", page, member));
 
         URL url = new URL(String.format(AllocationInspector.MEMBER_RECENT_ARTICLES_URL, this.getClubId(), this.getClubId(), member.getId(), page));
@@ -83,20 +84,26 @@ public class AllocationInspector {
         return articles;
     }
 
-    public List<MemberArticle> getArticles(Member member, Date date){
-        return this.getArticles(member, date, 1);
+    public List<MemberArticle> getArticles(Member member, Date start, Date end){
+        return this.getArticles(member, start, end, 1);
     }
 
-    public List<MemberArticle> getArticles(Member member, Date date, int page){
-        final String today = AllocationInspector.DATE_FORMAT.format(date);
+    public List<MemberArticle> getArticles(Member member, Date start, Date end, int page){
+        final String startDate = AllocationInspector.DATE_FORMAT.format(start);
+        final String endDate = AllocationInspector.DATE_FORMAT.format(end);
+
         try{
             List<MemberArticle> articles = this.getRecentMemberArticles(member, page);
-            if((articles.size() > 0 && articles.get(0).getUploadDate().compareTo(today) >= 0) || articles.stream().map(MemberArticle::getUploadDate).distinct().count() == 1){
-                articles.addAll(this.getArticles(member, date, page + 1));
+            if(articles.size() > 0){
+                String uploadDate = articles.get(0).getUploadDate();
+                if(endDate.compareTo(uploadDate) < 0 || startDate.compareTo(uploadDate) < 0){
+                    articles.addAll(this.getArticles(member, start, end, page + 1));
+                }
             }
 
             return articles.stream()
-                    .filter(article -> article.getUploadDate().equals(today))
+                    .filter(article -> article.getUploadDate().equals(startDate) || article.getUploadDate().equals(endDate))
+                    .filter(article -> AllocationInspector.inRange(start, end, article.getDate()))
                     .filter(article -> article.getMenuId() != 30)
                     .collect(Collectors.toList());
         }catch(Exception e){
@@ -105,15 +112,35 @@ public class AllocationInspector {
         }
     }
 
+    public static boolean inRange(Date start, Date end, Date target){
+        return start.compareTo(target) <= 0 && target.compareTo(end) < 0;
+    }
+
     public String inspect(Date date){
+        Calendar calendar = Calendar.getInstance(Locale.KOREA);
+        calendar.setTime(date);
+
+        calendar.set(Calendar.HOUR_OF_DAY, Main.midnightHour);
+        calendar.set(Calendar.MINUTE, 0);
+        calendar.set(Calendar.SECOND, 0);
+        calendar.set(Calendar.MILLISECOND, 0);
+        Date start = calendar.getTime();
+
+        calendar.add(Calendar.DATE, 1);
+        Date end = calendar.getTime();
+
+        return this.inspect(start, end);
+    }
+
+    public String inspect(Date start, Date end){
         List<String> messages = new ArrayList<>();
         messages.add(String.format("%s%s[%s]   %s%s검사시각: %s%n",
-                TextFormat.BOLD, TextFormat.BLUE, AllocationInspector.KOREAN_DATE_FORMAT.format(date),
+                TextFormat.BOLD, TextFormat.BLUE, AllocationInspector.KOREAN_DATE_FORMAT.format(start),
                 TextFormat.RESET, TextFormat.GRAY, AllocationInspector.KOREAN_FULL_DATE_FORMAT.format(new Date())));
 
-        final long start = System.currentTimeMillis();
+        final long startTime = System.currentTimeMillis();
 
-        final List<Result> results = this.getAssignees().stream().map(assignee -> new Result(assignee, this.getArticles(assignee, date), this.getAllocatedArticles())).sorted().collect(Collectors.toList());
+        final List<Result> results = this.getAssignees().stream().map(assignee -> new Result(assignee, this.getArticles(assignee, start, end), this.getAllocatedArticles())).sorted().collect(Collectors.toList());
         messages.addAll(this.printResultsWithRank(results));
 
         final long aliveAssignees     = results.stream().filter(Result::isAlive).count();
@@ -133,7 +160,7 @@ public class AllocationInspector {
                 AllocationInspector.DELIMITER, TextFormat.BOLD, aliveAssignees,
                 AllocationInspector.DELIMITER, TextFormat.BOLD, succeededAssignees,
                 AllocationInspector.DELIMITER, TextFormat.BOLD, totalArticles,
-                AllocationInspector.DELIMITER, TextFormat.BOLD, (System.currentTimeMillis() - start) / 1000.0,
+                AllocationInspector.DELIMITER, TextFormat.BOLD, (System.currentTimeMillis() - startTime) / 1000.0,
                 AllocationInspector.DELIMITER));
 
         messages.add(String.format("%s참여율:　%s%4.1f%% %s달성률:　%s%4.1f%% %s평균: %s%5.2f개 %s표준편차: %s%6.2f개 %s%n%n",

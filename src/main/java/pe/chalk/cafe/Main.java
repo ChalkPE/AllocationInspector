@@ -18,6 +18,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.Locale;
 import java.util.Properties;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
@@ -35,7 +36,8 @@ public class Main {
 
     public static String html;
     public static Path htmlOutput;
-    public static int days;
+
+    public static int days, midnightHour;
 
     public static void main(String[] args) throws IOException, InterruptedException {
         Main.takoyaki = new Takoyaki();
@@ -61,6 +63,7 @@ public class Main {
 
         JSONObject properties = new JSONObject(new String(Files.readAllBytes(propertiesPath), StandardCharsets.UTF_8));
         Main.days = properties.getInt("days");
+        Main.midnightHour = properties.getInt("midnightHour");
 
         try{
             Main.html = new String(Files.readAllBytes(Paths.get(properties.getString("htmlInput"))), StandardCharsets.UTF_8);
@@ -77,7 +80,7 @@ public class Main {
 
         new Thread(() -> {
             try{
-                Thread.sleep(1000 * 60 * 60 * 2); //2h
+                Thread.sleep(TimeUnit.HOURS.toMillis(3));
 
                 MemberArticle.cache.clear();
                 Takoyaki.getInstance().getLogger().notice("CACHE CLEARED!");
