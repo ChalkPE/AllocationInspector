@@ -30,7 +30,7 @@ public class AllocationInspector {
     public static final String DELIMITER = TextFormat.RESET.toString() + TextFormat.DARK_BLUE + "| " + TextFormat.BLUE;
 
     public static final SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("yyyy.MM.dd.", Locale.KOREA);
-    public static final SimpleDateFormat KOREAN_DATE_FORMAT = new SimpleDateFormat("yyyy년 MM월 dd일", Locale.KOREA);
+    public static final SimpleDateFormat KOREAN_DATE_FORMAT = new SimpleDateFormat("yyyy년 MM월 dd일 E요일", Locale.KOREA);
     public static final SimpleDateFormat KOREAN_FULL_DATE_FORMAT = new SimpleDateFormat("yyyy년 MM월 dd일 HH시 mm분 ss초 SSS", Locale.KOREA);
 
     public static final Map<String, List<MemberArticle>> cache = new HashMap<>();
