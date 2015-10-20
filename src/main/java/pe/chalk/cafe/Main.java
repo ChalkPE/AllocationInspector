@@ -120,7 +120,7 @@ public class Main {
 
     public static void html(String messages){
         try{
-            Files.write(Main.htmlOutput, String.format(Main.html, TextFormat.replaceTo(TextFormat.Type.HTML, messages)).getBytes(StandardCharsets.UTF_8));
+            Files.write(Main.htmlOutput, String.format(Main.html, TextFormat.replaceTo(TextFormat.Type.HTML, messages.replaceAll(" ", "&nbsp;"))).getBytes(StandardCharsets.UTF_8));
         }catch(Exception e){
             e.printStackTrace();
         }
