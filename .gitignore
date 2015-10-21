@@ -2,7 +2,6 @@ Takoyaki*
 plugins/
 
 AllocationInspector.json
-account.properties
 *.html
 
 # Created by .ignore support plugin (hsz.mobi)

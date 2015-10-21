@@ -1,12 +1,11 @@
 package pe.chalk.cafe;
 
 import org.json.JSONObject;
+import org.jsoup.nodes.Document;
 import pe.chalk.takoyaki.Takoyaki;
 import pe.chalk.takoyaki.Target;
 import pe.chalk.takoyaki.utils.TextFormat;
-import pe.chalk.test.Staff;
 
-import java.io.FileInputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -17,7 +16,6 @@ import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 import java.util.Locale;
-import java.util.Properties;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -28,7 +26,6 @@ import java.util.stream.Stream;
  * @since 2015-10-10
  */
 public class Main {
-    public static Staff staff;
     public static Takoyaki takoyaki;
     public static List<AllocationInspector> inspectors;
 
@@ -41,19 +38,6 @@ public class Main {
 
     public static void main(String[] args) throws IOException, InterruptedException {
         Main.takoyaki = new Takoyaki();
-
-        try{
-            Properties accountProperties = new Properties(); accountProperties.load(new FileInputStream("account.properties"));
-            Takoyaki.getInstance().getLogger().info("네이버에 로그인합니다: " + accountProperties.getProperty("user.id"));
-
-            Main.staff = new Staff(null, accountProperties);
-            Main.staff.getOptions().setJavaScriptEnabled(false);
-
-            Runtime.getRuntime().addShutdownHook(new Thread(Main.staff::close));
-        }catch(IllegalStateException e){
-            Takoyaki.getInstance().getLogger().error("네이버에 로그인할 수 없습니다!");
-            return;
-        }
 
         Path propertiesPath = Paths.get("AllocationInspector.json");
         if(Files.notExists(propertiesPath)){
@@ -105,6 +89,10 @@ public class Main {
                 e.printStackTrace();
             }
         }
+    }
+
+    public static Document parse(String url) throws IOException {
+        return Main.takoyaki.getTargets().get(0).getStaff().parse(url);
     }
 
     public static void inspect(Stream<Date> dates) throws InterruptedException {

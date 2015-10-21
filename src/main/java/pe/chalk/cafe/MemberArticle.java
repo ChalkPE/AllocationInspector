@@ -1,6 +1,5 @@
 package pe.chalk.cafe;
 
-import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
@@ -9,7 +8,6 @@ import pe.chalk.takoyaki.model.Member;
 import pe.chalk.takoyaki.model.SimpleArticle;
 import pe.chalk.takoyaki.utils.TextFormat;
 
-import java.net.URL;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
@@ -106,7 +104,7 @@ public class MemberArticle extends SimpleArticle {
         Takoyaki.getInstance().getLogger().info("UPDATE: " + this.toString());
 
         try{
-            Document document = Jsoup.parse(Main.staff.getPage(new URL("http://cafe.naver.com/ArticleRead.nhn?clubid=23683173&articleid=" + this.getId())).getWebResponse().getContentAsString());
+            Document document = Main.parse("http://cafe.naver.com/ArticleRead.nhn?clubid=23683173&articleid=" + this.getId());
 
             Matcher menuIdMatcher = MemberArticle.MENU_ID_PATTERN.matcher(document.select("div.tit-box div.fl a.m-tcol-c").first().attr("href"));
             if(menuIdMatcher.find()){

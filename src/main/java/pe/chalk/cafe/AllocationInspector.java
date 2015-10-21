@@ -1,14 +1,12 @@
 package pe.chalk.cafe;
 
 import org.json.JSONObject;
-import org.jsoup.Jsoup;
 import pe.chalk.takoyaki.Takoyaki;
 import pe.chalk.takoyaki.Target;
 import pe.chalk.takoyaki.model.Member;
 import pe.chalk.takoyaki.utils.TextFormat;
 
 import java.io.IOException;
-import java.net.URL;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
@@ -73,8 +71,7 @@ public class AllocationInspector {
         Main.delay(500);
         Takoyaki.getInstance().getLogger().info(String.format("PARSE:  #%02d: %s", page, member));
 
-        URL url = new URL(String.format(AllocationInspector.MEMBER_RECENT_ARTICLES_URL, this.getClubId(), this.getClubId(), member.getId(), page));
-        List<MemberArticle> articles = Jsoup.parse(Main.staff.getPage(url).getWebResponse().getContentAsString())
+        List<MemberArticle> articles = Main.parse(String.format(AllocationInspector.MEMBER_RECENT_ARTICLES_URL, this.getClubId(), this.getClubId(), member.getId(), page))
                 .select("tr[align=center]:not([class])").stream()
                 .map(element -> MemberArticle.fromElement(element, this.getClubId(), member))
                 .sorted((a, b) -> a.getId() - b.getId())
